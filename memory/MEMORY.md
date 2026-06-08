@@ -53,3 +53,4 @@
 - [Addons branch-switch risico](feedback_addons_branch_switch_risico.md) — branch-switch op env-pattern instance zonder DB-upgrade → 500; master HEAD MySchool_addons stuk (org_students import zonder bestand), te fixen in odoo-dev werf; herstel via reset --hard naar schone commit + clean -fdx
 - [Odoo role-migratie](project_odoo_role_migration.md) — alle env-pattern instances → role-based odoo-podman (clean redeploy), behalve myschool-test (testgroep, later); prereqs: master fixen (Dev→master), image-deps uitbreiden, admin/db-pw roteren
 - [UniFi OS Server migratie](project_unifi_os_server_migration.md) — controller → SRVV-UNIFI-01 (Debian 13, VLAN 35 / 10.35.0.3); firewall inform-rules NM-001 (TCP 8080) + NM-002 (UDP 3478); tracker NET-1
+- [Workspace-repo + onboarding](project_workspace_repo_onboarding.md) — Claude-context in private repo ictolvpbe/olvp-ict-workspace; 3 repos = 1 werkmap; runbook RB-2026-ONBOARD-WS; memory-sync-gotcha bij parallel werken
