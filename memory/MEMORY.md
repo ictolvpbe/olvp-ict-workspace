@@ -1,0 +1,55 @@
+- [User context](user_role.md) — ICT-verantwoordelijke OLVP school, Nederlandstalig, vraagt verhelderingen voor commitment
+- [Risk-aware change management](feedback_risk_aware_changes.md) — splits grote wijzigingen in fasen, plan risico tijdens schoolvakanties
+- [Project: Odoo publiek toegankelijk](project_odoo_public_access.md) — meerdere Odoo MySchool-instances via HAProxy HA in DMZ, dual ISP
+- [Architectuur HAProxy-stack](project_architecture_haproxy.md) — HAProxy HA in DMZ, TLS re-encrypt, step-ca, Cloudflare Free + $5 LB
+- [Identity-architectuur](project_identity_architecture.md) — 3 rollen (id/acc/app), AD als SoT, acc volledig intern, SRVV-ID-01 + SRVV-ACC-01; test/prod/dev via 2 Keycloak-realms op één instance: `olvp`(prod+test→AD olvp.int) + `olvp-dev`(dev→AD olvp.test); twee AD-domeinen (2026-06-06)
+- [Project-fasering](project_phasing.md) — 4 fasen: 1 build + 1b security prio1 (nu), 2 DNS-migratie (zomer 26), 3 security prio2 (najaar 26), 4 security prio3 (2027+)
+- [Security defense-in-depth](project_security_layers.md) — DMZ alleen onvoldoende; lagen verdeeld over fase 1b/3/4
+- [Infrastructuur-parameters](project_infrastructure_params.md) — VLANs, IPs, VM-inventaris (3 Odoo-hosts, 4 actieve FQDNs), DMZ/management IP-plan, Debian 13 minimal als standaard VM-OS
+- [DNS olvp.be](reference_dns_olvpbe.md) — registratie one.com, DNS-hosting migreert naar Cloudflare zomer 2026
+- [Programma-structuur](project_programma_structuur.md) — 6 deelprojecten + governance-laag sinds 2026-05-21, 15 hard gates voor A-go-live
+- [Bus-factor](project_bus_factor.md) — collega in opleiding als secundaire admin; workforce-track in governance
+- [Review-aanvragen](feedback_review_aanvraag.md) — bij expert-review: grondige extractie eerst, eerlijke gap-analyse, strategische aanbevelingen
+- [MCP + ITSM strategie](project_mcp_and_itsm.md) — Project G (MCP-deploy) + Project H (Odoo PM/ITSM-migratie); Claude-updates via MCP als doel, Odoo wordt single-source-of-truth na Fase 5
+- [VCS-strategie](project_vcs_strategy.md) — GitHub (private) tijdelijk; migreren naar Forgejo wanneer Forgejo-stack opgeleverd is
+- [Client-identity op netwerk](project_client_identity.md) — 802.1X+dynamic-VLAN werkt al via NPS; FreeRADIUS als doel; tier-ladder voor NXfilter↔RADIUS-correlatie
+- [Security testing-strategie](project_security_testing.md) — 5-cyclus plan, Defender Attack Simulator (M365 A5) i.p.v. GoPhish, VLAN 38 voor zelf-pen-test
+- [Containerization](project_containerization.md) — Podman als default-runtime (ADR 0004), Odoo Docker→Podman migratie gepland, Portainer uit te faseren
+- [Service-accounts](feedback_service_accounts.md) — `ansible` voor automation op alle stack-VMs, persoonsgebonden accounts voor interactief
+- [Firewall-strategie](project_firewall_strategy.md) — 14 UniFi-zones bewust geconsolideerd; intra-zone-deny + per-VLAN-isolation; gotcha 'Retourverkeer Automatisch Toestaan' verplicht op inter-zone allows
+- [Secrets-management](project_secrets_management.md) — KeePassXC nu voor kritieke keys, Vaultwarden self-hosted als doel; cloud-Bitwarden alleen voor niet-kritieke wachtwoorden
+- [Zijsporen welkom](feedback_zijsporen_welkom.md) — proactief nuttige observaties melden mits ze het project echt verbeteren; niet alleen strikt bij gevraagde taak blijven
+- [Naming-conventie](project_naming_convention.md) — PREFIX-ROL-NN (SRV/SRVV/SW/WAP/CAM/PR/TEL), canonical DNS + korte CNAME-alias; mgmt-tier "één VM per logische stack"
+- [YAML-gotcha eenduidigheid](feedback_yaml_colon_space.md) — bij doc-gotchas: "spatie na de :" i.p.v. "juiste indentatie"; toon fout-vs-correct expliciet
+- [Interne PKI-coverage](project_internal_pki_coverage.md) — step-ca live sinds 2026-05-28 op SRVV-STEPCA-01; root-key offline LUKS-USB; dekt uiteindelijk alle mgmt-UIs
+- [Geen destructive previews](feedback_no_preview_destructive.md) — shred/rm/luksFormat etc. ALLEEN op moment van uitvoering, nooit als preview/teaser — copy-paste leidt anders tot uitvoering vóór verificatie
+- [Ansible check-mode verify](feedback_ansible_check_mode_verify.md) — bij changed=true + opvolgende failures: SSH naar target en `dpkg -l`/`systemctl is-active`, vertrouw PLAY RECAP niet blind
+- [Hosting Fase 1 status](project_hosting_fase1_status.md) — live deploy-stand: HAProxy+VIP+DNAT live, myschool-dev2.olvp.be end-to-end werkt via direct_backend pad
+- [UniFi nieuwe VLAN zone-assignment](feedback_unifi_new_vlan_zone.md) — wijs altijd expliciet de juiste Network Zone toe bij VLAN-create, anders blokkeren zone-paar-policies
+- [HAProxy Odoo health-check Host-header](feedback_haproxy_odoo_healthcheck_host.md) — `http-check send meth GET uri /web/health hdr Host <fqdn>` verplicht, anders Odoo→500→backend DOWN
+- [step ca renew zonder password](feedback_step_ca_renew_no_password.md) — bestaand cert is auth → cron-renewal volledig handenvrij, geen provisioner-pw op host nodig
+- [Caddy default_sni voor HAProxy check](feedback_caddy_default_sni_for_haproxy_check.md) — Caddyfile achter HAProxy MOET `default_sni <fqdn>` global hebben, anders weigert Caddy SNI-loze health-checks met TLS alert 80 → backend L6RSP DOWN
+- [Terminal paste lange regels](feedback_terminal_paste_long_lines.md) — geen heredoc + lange echo/printf-strings in runbooks; nano voor multi-line; `sudo CMD -cf` (geen spatie) om sudo-flag-parsing te vermijden
+- [Docker→Podman migratie gotchas](feedback_docker_to_podman_migration.md) — 3 stappen die elk ~5min kosten: unqualified-search-registries config, `--network=host` voor build na Docker-disable, Quadlet-units zijn transient (geen `systemctl enable`)
+- [Template-strategie Tier 1/2](project_template_strategy.md) — één golden-image baseline (Debian + Ansible + Podman + step + Cockpit) voor alle VMs, app-overlay via Ansible. Live sinds 2026-06-01.
+- [Semaphore canonical SSH-key](feedback_semaphore_key_canonical.md) — altijd `ansible-targets-ssh` in Inventory User Credentials; `ansible-service-account`-entry is leeg en geeft parse-error
+- [Semaphore Survey vs CLI Args](feedback_semaphore_survey_vs_cli_args.md) — Survey-vars gaan auto als `-e KEY=VALUE`; CLI Args alleen JSON-array; multi-line shell-tekst geeft `ansible-playbook --help` + exit 2
+- [Odoo addons-repo + branch-conventie](project_odoo_addons_repo.md) — `ictolvpbe/MySchool_addons` private; `master` prod / `Dev` test+dev (case-sensitive); gepulled door Semaphore template per-instance
+- [Ansible group_vars layout](project_ansible_groupvars_layout.md) — `group_vars/all/{vars,vault}.yml` dir-stijl, auto-geladen; nooit vault als expliciete `vars_files` opnemen
+- [odoo:19.0 Podman uid](feedback_odoo19_podman_uid.md) — container draait als uid 100/gid 101 (niet 101:101); chown odooN-data + odoo.conf naar uid 100 anders filestore/config PermissionError
+- [odoo-image ldap3 bewust](project_odoo_image_ldap3.md) — ldap3 zit er voor myschool-accountbeheer; image/pip-deps geparkeerd, niet unilateraal wijzigen; auth_ldap = python-ldap (coördinatiepunt)
+- [Caddy no-cache op Odoo login-paths](feedback_odoo_caddy_no_cache_login.md) — verplicht om intermittent CSRF + trage F5-login te voorkomen; in Caddyfile-template per site-block
+- [Test vanaf user-VLAN](feedback_test_from_user_vlan.md) — Admin-VLAN 34 testen verbergt firewall-gaps; minstens 1× testen vanaf VLAN 10 (USERS) voor publiek-bereikbare diensten
+- [Ansible vault auto-loading](feedback_ansible_vault_loading.md) — `group_vars/<name>_vault.yml` wordt NIET geladen; gebruik `group_vars/<name>/{vars,vault}.yml` directory-pattern
+- [Forgejo werf-status](project_forgejo_status.md) — SRVV-FORGEJO-01 in opbouw; postgres-issue ook met ACC-01-patroon (pg:15+Secret+NetworkAlias) niet fixbaar; werf gepauzeerd 2026-06-03 — alternatieven: SQLite/Gitea/cloud
+- [Werkmethode 2 werven](feedback_working_method_two_werven.md) — subagents persisteren niet; continuïteit via memory + per-repo CLAUDE.md + status-memory + claude --resume; draai per werf vanuit eigen repo-dir
+- [MySchool_addons repo](project_myschool_repo.md) — Odoo-addons repo met 18 modules; docs/-structuur sinds 2026-06-03 op branch Dev-Docs-structure (32 files, analoog platform-handbook); lokaal pad /home/demm/PyCharm/odoo-myschool/extra-addons/
+- [Keycloak LDAPS + postgres-uid gotchas](feedback_keycloak_ldaps_truststore.md) — KC_TRUSTSTORE_PATHS met openssl-gefetcht AD-cert voor LDAPS-handshake; postgres:15 Debian = uid 999 (niet 70 zoals alpine)
+- [MCP projects-provider spec](reference_mcp_projects_provider.md) — `provider_projects` in myschool_mcp: tools, datamodel `myschool.project` + `task`, workflow voor push van project-data via Claude/clients; actieve `myschool`-server sinds 2026-06-06 = `https://myschool-ict.olvp.be/mcp` via dedicated least-privilege user `claude-mcp` (extra-addons scope)
+- [Semaphore template Repository + vault gotchas](feedback_semaphore_template_repo_vault.md) — primaire Repository moet platform-ansible zijn (niet addons-repo); élke template heeft vault-key nodig want group_vars/all/vault.yml auto-laadt; na vault-rekey beide keystore-keys (id 3 + 7) updaten, fout duikt vertraagd op door repo-cache
+- [Semaphore via REST API](feedback_semaphore_rest_api.md) — Claude stuurt Semaphore (10.35.0.10:3000) aan via REST API met wegwerp-token: templates aanmaken/lezen, task-output debuggen, runs monitoren; vault/PAT blijven in keystore; verwijs naar template via NAAM niet volgnummer
+- [Semaphore runner remote-hang](feedback_semaphore_runner_remote_hang.md) — remote-first playbooks (webapps/haproxy) hangen pre-PLAY op de runner (ansible-core 2.20); enkel localhost-first (addons-update) werkt → remote-deploys lokaal met --ask-vault-pass; collections/requirements.yml (containers.podman) verplicht
+- [Semaphore ProxyJump naar prod-webapps](feedback_semaphore_proxyjump_prod_webapps.md) — runner (VLAN 35) bereikt prod-webapps (VLAN 36) enkel via bastion; ProxyJump-extra-var in Environment 'OLVP Default' + firewall A-009. Environment heet 'OLVP Default'
+- [Addons branch-switch risico](feedback_addons_branch_switch_risico.md) — branch-switch op env-pattern instance zonder DB-upgrade → 500; master HEAD MySchool_addons stuk (org_students import zonder bestand), te fixen in odoo-dev werf; herstel via reset --hard naar schone commit + clean -fdx
+- [Odoo role-migratie](project_odoo_role_migration.md) — alle env-pattern instances → role-based odoo-podman (clean redeploy), behalve myschool-test (testgroep, later); prereqs: master fixen (Dev→master), image-deps uitbreiden, admin/db-pw roteren
+- [UniFi OS Server migratie](project_unifi_os_server_migration.md) — controller → SRVV-UNIFI-01 (Debian 13, VLAN 35 / 10.35.0.3); firewall inform-rules NM-001 (TCP 8080) + NM-002 (UDP 3478); tracker NET-1

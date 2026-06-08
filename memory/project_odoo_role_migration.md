@@ -1,0 +1,46 @@
+---
+name: project-odoo-role-migration
+description: Strategische beslissing 2026-06-05 — alle env-pattern Odoo-instances migreren naar de role-based odoo-podman deploy (conf-pattern, zoals ACC-01), behalve myschool-test (testgroep in gebruik, later). Lost env-pattern root-cause op (geen odoo -u via playbook, image-deps onbeheerd, vuile git-trees).
+metadata:
+  type: project
+---
+
+**Beslissing 2026-06-05** (na een dag env-pattern-ellende: myschool-ict 500 door branch-switch zonder DB-upgrade, broken master, missende image-deps): **alle Odoo-instances migreren naar `roles/odoo-podman/`** (conf-pattern, reproduceerbaar, `odoo -u` werkt, gedeelde image, postgres-secret) — net als SRVV-ACC-01.
+
+**Scope:**
+- **Wel migreren:** `myschool.olvp.be` (live prod, SRVV-ODOO-01:8069), `myschool-ict.olvp.be` (SRVV-ODOO-01:8070, DB ICT-PROD), `myschool-dev.olvp.be` (TST-ODOO-01:8071, DB odoo-dev), `myschool-dev2.olvp.be` (TST-ODOO-02:8069).
+- **NIET nu:** `myschool-test.olvp.be` (TST-ODOO-01:8069) — **in gebruik door testgroep**, op de planning voor later migreren.
+- ACC-instances zijn al role-based (referentie).
+
+**Bekende blockers/prerequisites (volgorde belangrijk):**
+1. **master is STUK** (org_students-import zonder bestand) — eerst fixen in MySchool_addons-repo. Plan: Dev valideren → **Dev→master** promoten (user: master nog niet echt in prod, mag overschreven). Zie [[feedback-addons-branch-switch-risico]].
+2. **Image-deps uitbreiden**: role-`Containerfile.j2` bakt nu enkel `ldap3`. Dev-manifests vereisen óók `google-api-python-client`, `google-auth`, `weasyprint`, `zeep` (zeep zit al in oude image). Coördinatiepunt [[project-odoo-image-ldap3]] — nu bewust uitbreiden als onderdeel van deze migratie.
+3. ~~Live prod myschool.olvp.be afwijkend/risicovol~~ **OPGELOST 2026-06-05**: user bevestigt myschool.olvp.be is **niet in gebruik, geen relevante data, mag CLEAN**. addons1 was leeg + geen git → bevestigt pre-productie-staat. Hiermee vervalt de dump/restore + het vakantievenster voor prod; wordt een gewone clean redeploy.
+
+**Data-aanpak (bevestigd 2026-06-05): ALLES CLEAN** — myschool.olvp.be, myschool-ict (ICT-PROD mag óók weg), myschool-dev, myschool-dev2 allemaal clean redeploy. Geen pg_dump/restore nodig.
+
+**TST-ODOO-01 besluit (bevestigd): myschool-dev verhuist naar TST-ODOO-02** (wordt de schone role-based dev-VM, samen met dev2). TST-ODOO-01 blijft ongemoeid env-pattern met enkel myschool-test tot die later migreert.
+
+**Voortgang:**
+- **Vault** gerekeyd naar nieuwe master (KeePassXC) + odoo admin/db-pw geroteerd naar sterke waarden (2026-06-05). ⚠️ Semaphore Key Store `olvp-ansible-vault` moet nog naar nieuwe master. Vault-pw-file tijdens migratie: `/tmp/.olvp-newvault`.
+- **Image** `localhost/odoo-olvp:19.0` uitgebreid met google-api-python-client/google-auth/weasyprint (+ apt Pango/Cairo-libs) bovenop ldap3. Gevalideerd.
+- **Fase A KLAAR (2026-06-05)**: TST-ODOO-02 clean gemigreerd naar role-based conf-pattern. `myschool-dev2` (DB `myschool_dev2`) draait, alle 20 myschool-modules clean geïnstalleerd op Dev, e2e `https://myschool-dev2.olvp.be` HTTP/2 200. 2 Dev-bugs gefixt + gepusht (origin/Dev `67eb976`): laadvolgorde menu-bestanden in `myschool_lessenrooster` + `myschool_professionalisering` (verwezen naar root-menu vóór definitie → faalt bij clean install, niet bij incrementele -u). Admin-"bug" was false positive (uitgecommentarieerd).
+- **Dev→master KLAAR (2026-06-05)**: force-push origin/Dev → master (`102c997`). Oude broken master (`d1217c4`, org_students) weg. Master = clean Dev-code.
+- **Fase B KLAAR (2026-06-05)**: SRVV-ODOO-01 (prod-VM) clean gemigreerd naar role-based. `myschool` (DB `myschool`) + `myschool-ict` (DB `myschool_ict`), beide master, 60 modules clean. e2e `https://myschool.olvp.be` + `https://myschool-ict.olvp.be` HTTP/2 200. Sterke vault-wachtwoorden in gebruik.
+- **Admin-groepen op prod gezet (2026-06-05)**: admin (uid 2) toegevoegd aan alle 59 myschool-groepen op `myschool` + `myschool_ict` (via SQL `res_groups_users_rel` + restart), zodat de apps zichtbaar zijn. Idem eerder op dev2.
+- **TODO — post-deploy automatiseren** (user-verzoek 2026-06-05): de role/post-deploy moet automatisch (a) de **admin-USER login-password** (uid 2, login 'admin') naar een sterke per-instance waarde zetten — nu nog default op verse DB; en (b) **admin in de app-groepen** zetten. Beide samen als één post-deploy stap (Ansible-task of odoo-script), want nu handmatig per instance. NB: `admin_passwd` (DB-manager master) staat al sterk via vault; dit gaat om het USER-wachtwoord. Koppelt aan [[task #39]].
+- **Nog te doen**: myschool-dev verhuizen naar TST-ODOO-02 (instance 2, laatste migratie-stuk: role-instance + HAProxy myschool-dev→tst-odoo-02 + opruimen oude instance op TST-ODOO-01); (optioneel) websocket→8072 in role-Caddy ([[feedback-no-preview-destructive]] niet relevant hier).
+  - **Rename meeliften (besloten 2026-06-06)**: bij deze verhuizing `SRVV-TST-ODOO-02` → **`SRVV-DEV-ODOO-01`** hernoemen en de dev-instances (myschool-dev + myschool-dev2) erop concentreren → schone test/dev-VM-split. TST-ODOO-01 wordt pure test (myschool-test). FQDN's blijven; raakt VM/hostname + `inventory.yml` + `instances.yml` `name:` + Proxmox-naam + Caddy-host. Lijnt met de Keycloak-realm-split ([[project-identity-architecture]]): DEV-VM → realm `olvp-dev`/AD `olvp.test`.
+    - ✅ **Fase 1-2 uitgevoerd 2026-06-06**: VM hernoemd (hostname + Proxmox + Cockpit-self-signed-cert → CN=srvv-dev-odoo-01), SoT + inventory bijgewerkt (platform-ansible commit `fe87928`: `instances.yml` name=`srvv-dev-odoo-01`, nieuwe `inventory.yml`-subgroep `dev_webapps`). IP/VMID ongewijzigd (`10.200.14.41`/`10084`); role matcht op IP, dus geen container-impact — e2e myschool-dev2 = HTTP/2 303. **Resteert**: HAProxy-redeploy (backendnaam → `be_srvv_dev_odoo_01`, vault nodig) = Fase 3; en Fase 5 = myschool-dev-relocatie (WBS item 41b).
+
+**Roadmap-volgorde (afgesproken 2026-06-06, in WBS met `[n]`-prefix)**: **[1]** server-rename SRVV-DEV-ODOO-01 (= dit item, nu `in_progress`) → **[2]** id-server (Keycloak IdP SRVV-ID-01, [[project-identity-architecture]] epic #41) → **[3]** account-servers (SRVV-ACC-01 app-config). WBS-ankers: item 41 / 45 / 53.
+
+**Fase 5 — myschool-dev-relocatie (item 41b/136) — KERN KLAAR 2026-06-06**: `myschool-dev` draait nu publiek op **dev-odoo-01 instance 2** (`:8070`, db `myschool_dev`, 60 modules clean, admin in groepen). Uitvoering: instance 2 gebouwd (odoo-podman, lokaal), addons `Dev` → addons2 (Semaphore "Odoo extra-addons Update", `target_fqdn=myschool-dev.olvp.be`), DB clean-init, cert `myschool-dev.olvp.be` (user via provisioner) + perms 644/640, Caddy (lokaal), **HAProxy-cutover** (lokaal, 2e poging — 1e raakte de DMZ-hosts niet): `myschool-dev.olvp.be` publiek **HTTP/2 303** vanaf dev-odoo-01; backend `be_srvv_dev_odoo_01`; 41a-backendnaam-reconcile meteen mee gebeurd. dev2 + test ongemoeid.
+- **TEARDOWN myschool-dev KLAAR (2026-06-07)**: op TST-ODOO-01 `odoo_instance_3`+`postgres_odoo_3` (8071, myschool-dev) gestopt+verwijderd, Quadlets weg, daemon-reload; Caddy `myschool-dev`-blok + cert weg. **id-test-routing óók opgeruimd** (Caddy-blok + cert weg) maar **container `odoo_instance_2` (8070) blijft draaien** tot de Keycloak-cutover (user-keuze). myschool-test (instance_1, 8069) ongemoeid → publiek 303. id-test publiek nu 503 (geen route). _(Idee "instance hernoemen naar myschool-test2" overwogen en verworpen — niet direct nodig.)_
+  - ⚠️ **GOTCHA (env-pattern/Quadlet Caddy)**: de `caddy.container`-Quadlet heeft een **`Volume=`-mount per instance-cert**. Cert-bestanden verwijderen zónder ook de bijhorende `Volume=`-regels uit `/etc/containers/systemd/caddy.container` te halen → container start niet meer (`Error: statfs /etc/caddy/<fqdn>.crt: no such file or directory`, exit 125) → Caddy down → myschool-test even down. **Fix/volgorde**: Caddyfile-blok weg → `caddy validate` → cert-bestanden weg → **Volume-regels uit caddy.container weg** → `daemon-reload` + start. (De role-Caddy `caddy.yml` doet dit automatisch via re-render uit instances.yml; bij handmatige env-pattern-teardown moet je beide zelf doen.)
+- **Semaphore-blokker (zie [[feedback-semaphore-runner-remote-hang]])**: odoo-podman/caddy/haproxy via Semaphore **hangen pre-PLAY** (ansible-core 2.20 runner); enkel localhost-first playbooks (addons-update) werken. Daarom die stappen lokaal met `--ask-vault-pass` gedraaid. `collections/requirements.yml` (containers.podman) toegevoegd (commit `a6cb7b1`) — nodig maar niet de oplossing van de hang.
+- **Vault-pw-file**: `/tmp/.olvp-newvault` (sessie). KeePassXC + Semaphore Key Store ✅ door user bijgewerkt naar nieuwe master.
+
+**Reminder — admin-wachtwoorden** (user expliciet 2026-06-05): bij de redeploy meteen **complexere admin_passwd** zetten (en db-pw) i.p.v. de oude. Role haalt `odoo_admin_passwd`/`odoo_db_password` uit vault → nieuwe sterke waarden in KeePassXC + ansible-vault. Koppelt aan [[task #39]] (admin_passwd) + [[task #40]] (db-pw rotatie).
+
+Gerelateerd: [[project-template-strategy]], [[project-hosting-fase1-status]], [[feedback-odoo19-podman-uid]] (uid 100), [[project-ansible-groupvars-layout]] (vault), [[feedback-addons-branch-switch-risico]].
