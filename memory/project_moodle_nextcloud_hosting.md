@@ -32,13 +32,15 @@ Tier 1 baseline + app-overlay). Nieuwe FQDN's (kandidaat `moodle.olvp.be` + `clo
   - Nextcloud: users + groepen + **group-folders** via de **Provisioning/OCS API**.
   - Mechanisme sluit aan bij de myschool-addons + MCP-provider ([[reference-mcp-projects-provider]]).
 
-**OPEN BESLISSING — SoT voor groepslidmaatschap:**
-- (a) MySchool → schrijft groepen naar **AD** → AD → Keycloak `groups`-claim → apps. Eén keten,
-  AD blijft enige SoT. Sluit aan bij de acc-instance (kan naar AD schrijven) + de auth_oidc
-  groups-claim-werf ([[project-identity-architecture]] OIDC-kant B). **Voorkeur** voor consistentie.
-- (b) MySchool → pusht direct naar Moodle/Nextcloud-API's (login via Keycloak, structuur via push).
-  Sneller maar tweede autorisatie-SoT naast AD.
-- Te beslissen vóór de sync-laag gebouwd wordt. Hangt samen met de auth_oidc-werf (odoo-dev).
+**BESLIST 2026-06-09 — sync-aanpak (groepslidmaatschap + provisioning):**
+- **PRIMAIR = directe backend-task sync (optie b):** MySchool (Odoo) pusht via backend-tasks
+  rechtstreeks naar de app-API's — Moodle **Web Services API**, Nextcloud **Provisioning/OCS-API**
+  (users + groepen + group-folders). Snelste pad; bouwen in de myschool-addons / MCP-laag.
+- **FALLBACK ("scenario 1") als dit niet vlot gaat = de AD-keten (optie a):** MySchool → schrijft
+  groepen naar **AD** → AD → Keycloak `groups`-claim → apps. Eén SoT (AD), sluit aan bij de
+  acc-instance (kan naar AD schrijven) + de auth_oidc groups-claim-werf ([[project-identity-architecture]]).
+- _(Auth/SSO blijft hoe dan ook via Keycloak-OIDC; dit gaat enkel over de provisioning/autorisatie-laag.
+  "scenario 1" = mijn lezing van de user-instructie = de AD-keten; corrigeer indien anders bedoeld.)_
 
 ## HA + Backup + GDPR
 
@@ -49,11 +51,11 @@ Tier 1 baseline + app-overlay). Nieuwe FQDN's (kandidaat `moodle.olvp.be` + `clo
   (Project C + `governance/dpia.md`). Moodle idem in mindere mate.
 - **Security**: egress-allowlist + hardening (Project B); publiek = WAF-scope (SEC-2).
 
-## Governance-vraag
+## Governance — Project I (bevestigd 2026-06-09)
 
-Eigen **deelproject (Project I — aanvullende web-applicaties)** of uitbreiding onder **Project A**?
-Nu als tracker-werven geparkeerd (APP-1/APP-2) met deze vraag **te ratificeren** door de user —
-geen unilaterale herstructurering van `programma-structuur.md` (8 deelprojecten).
+User koos **eigen deelproject**: **Project I — Aanvullende web-applicaties (Moodle & Nextcloud)**.
+Toegevoegd aan `governance/programma-structuur.md` (nu 9 deelprojecten + governance-laag) + mermaid.
+Tracker-werven APP-1 (Moodle) / APP-2 (Nextcloud).
 
 **How to apply:** bij Moodle/Nextcloud-werk: auth = Keycloak-OIDC (niet lokale of losse LDAP-bind),
 provisioning = MySchool-gedreven, deploy = role-based Podman/Quadlet zoals odoo-podman. Eerst test,
