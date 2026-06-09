@@ -55,3 +55,4 @@
 - [UniFi OS Server migratie](project_unifi_os_server_migration.md) — controller → SRVV-UNIFI-01 (Debian 13, VLAN 35 / 10.35.0.3); firewall inform-rules NM-001 (TCP 8080) + NM-002 (UDP 3478); tracker NET-1
 - [AD-DC + CA → SRVV-SERV-01](project_ad_serv01_migration.md) — prod AD/CA SRVV-INFRA002 (10.10.0.10, VLAN 10) verhuizen naar SRVV-SERV-01 (10.33.0.10, VLAN 33) bij VLAN-10-leegmaak; test-domein-CA-migratie (10.200.0.9→SRVV-TST-WIN-01) als dry-run + deblokkeert Keycloak olvp-dev
 - [Workspace-repo + onboarding](project_workspace_repo_onboarding.md) — Claude-context in private repo ictolvpbe/olvp-ict-workspace; 3 repos = 1 werkmap; runbook RB-2026-ONBOARD-WS; memory-sync-gotcha bij parallel werken
+- [Moodle + Nextcloud hosting](project_moodle_nextcloud_hosting.md) — 2 nieuwe publieke app-werven (tracker APP-1/APP-2): auth via Keycloak-OIDC, accounts/groepen/mappen gesynct vanuit MySchool; test eerst, HA later; open beslissing groeps-SoT (AD vs MySchool)
