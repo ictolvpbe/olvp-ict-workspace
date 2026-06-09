@@ -207,11 +207,22 @@ email-linking rond is.
 **Punt 1 (KC-kant) — gedraaid op olvp-dev (2026-06-09):** `roles/keycloak/files/add-login-claims.sh`
 (platform-ansible commit `6564e2c`) — idempotent: realm `loginWithEmailAllowed=true` + LDAP-attr-mappers
 `sAMAccountName`+`employeeID` + client protocol-mappers → claims `email`/`samaccountname`/`employee_id`.
-Gedraaid op realm `olvp-dev` (client `odoo-myschool-dev2`, provider `olvp-test-ad`): de 3 protocol-mappers
-staan bevestigd op de client (kcadm-check). **Nog te doen**: claim-verificatie via voorbeeld-token
-(`generate-example-access-token`) of echte login; daarna **prod `olvp`** (provider `srvv-infra002-ad`,
-per app-client). Caveat: `employeeID` moet in olvp.test-AD gevuld zijn (anders claim leeg = ok, fallback);
-`mail` gevuld + uniek (duplicateEmailsAllowed=false).
+**✅ VOLLEDIG ROND op olvp-dev (2026-06-09)** — voorbeeld-token (`generate-example-access-token`) van
+mark.demeyer bevat alle drie de claims: `email`=mark.demeyer@olvpedu.be, `samaccountname`=mark.demeyer,
+`employee_id`=11533. **Twee gotcha's onderweg (script `a226a5f` bevat de fixes):**
+1. **KC user-profile lowercaset onbeheerde attribuut-namen** → `user.model.attribute` (LDAP-mapper) én
+   `user.attribute` (protocol-mapper) MOETEN lowercase. `employeeID` (mixed) → claim bleef leeg; `employeeid`
+   werkt. (sAMAccountName→`samaccountname` was al lowercase, viel daarom niet op.)
+2. **AD-bind-account had geen leesrecht op `employeeID`** (sAMAccountName is wereld-leesbaar, employeeID niet).
+   Symptoom: config correct + waarde in AD (`11533` op beide DC's) maar claim leeg; geen cache/sync-kwestie.
+   Fix op de DC: `dsacls "DC=olvp,DC=test" /I:S /G "OLVP\keycloak:RP;employeeID;user"` (bij confidential-bit
+   128 → `RPCA`). Daarna `clear-user-cache` → claim verschijnt direct.
+
+**Nog te doen — prod-realm `olvp`** (provider `srvv-infra002-ad`, per app-client): zelfde
+`add-login-claims.sh` draaien (`REALM=olvp LDAP_PROVIDER=srvv-infra002-ad CLIENT_ID=<app-client>`). **LET OP:
+gotcha 2 keert terug op prod** — geef het PROD-bind-account leesrecht op `employeeID` in **olvp.int**
+(`dsacls "DC=olvp,DC=int" /I:S /G "OLVP\<prod-bind-sam>:RP;employeeID;user"`) anders blijft `employee_id`
+daar leeg. Caveat blijft: `mail` gevuld + uniek (duplicateEmailsAllowed=false).
 
 **kcadmin-pw GEROTEERD (2026-06-09) — first-boot-gotcha opgelost.** De live `kcadmin`-pw stond vast op
 de first-boot-waarde (4 juni) terwijl vault/KeePassXC sinds de rekey (5 juni) een andere waarde hielden →
