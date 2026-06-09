@@ -204,10 +204,22 @@ fallbacks (sAMAccountName/employeeID-claims) + `sub`→oauth_uid. KC: login-met-
 extra protocol-mappers voor sAMAccountName + employeeID. Google-brokering pas later, mits
 email-linking rond is.
 
-**Punt 1 (KC-kant) — script klaar, run pending (2026-06-09):** `roles/keycloak/files/add-login-claims.sh`
+**Punt 1 (KC-kant) — gedraaid op olvp-dev (2026-06-09):** `roles/keycloak/files/add-login-claims.sh`
 (platform-ansible commit `6564e2c`) — idempotent: realm `loginWithEmailAllowed=true` + LDAP-attr-mappers
 `sAMAccountName`+`employeeID` + client protocol-mappers → claims `email`/`samaccountname`/`employee_id`.
-Operator-run op SRVV-ID-01 (kcadmin-pw uit KeePassXC, NIET per se = vault — bootstrap-pw-gotcha).
-**Eerst `olvp-dev`** (client `odoo-myschool-dev2`, provider `olvp-test-ad`), verifiëren via token-decode,
-**dan `olvp`** (provider `srvv-infra002-ad`, per app-client). Caveat: `employeeID` moet in olvp.test-AD
-gevuld zijn (anders claim leeg = ok, is fallback); `mail` gevuld + uniek (duplicateEmailsAllowed=false).
+Gedraaid op realm `olvp-dev` (client `odoo-myschool-dev2`, provider `olvp-test-ad`): de 3 protocol-mappers
+staan bevestigd op de client (kcadm-check). **Nog te doen**: claim-verificatie via voorbeeld-token
+(`generate-example-access-token`) of echte login; daarna **prod `olvp`** (provider `srvv-infra002-ad`,
+per app-client). Caveat: `employeeID` moet in olvp.test-AD gevuld zijn (anders claim leeg = ok, fallback);
+`mail` gevuld + uniek (duplicateEmailsAllowed=false).
+
+**kcadmin-pw GEROTEERD (2026-06-09) — first-boot-gotcha opgelost.** De live `kcadmin`-pw stond vast op
+de first-boot-waarde (4 juni) terwijl vault/KeePassXC sinds de rekey (5 juni) een andere waarde hielden →
+auth faalde. Opgelost via **bootstrap-admin recovery** (KC 26): `systemctl stop keycloak` → one-off
+`podman run … quay.io/keycloak/keycloak:26.0 bootstrap-admin user --username tmpadm --password:env …`
+(tegen dezelfde DB via `--network keycloak` + secret `keycloak-db-passwd`) → start → als `tmpadm`
+inloggen → `kcadm set-password` op `kcadmin` → `tmpadm` verwijderd. Nieuwe pw nu in KeePassXC-entry
+`keycloak-admin-srvv-id-01` + vault `vault_keycloak_admin_password` (gelijk). Podman-secret
+`keycloak-admin-passwd` opnieuw te renderen (role-task heeft `skip_existing: true` → eerst `podman secret rm`,
+dán `keycloak.yml --tags secret`). NB: secret-re-render is enkel hygiëne voor een toekomstige verse-DB-bootstrap;
+de live `kcadmin` is al via DB geroteerd. Bron-doc: keycloak.org/server/bootstrap-admin-recovery.
