@@ -218,11 +218,18 @@ mark.demeyer bevat alle drie de claims: `email`=mark.demeyer@olvpedu.be, `samacc
    Fix op de DC: `dsacls "DC=olvp,DC=test" /I:S /G "OLVP\keycloak:RP;employeeID;user"` (bij confidential-bit
    128 → `RPCA`). Daarna `clear-user-cache` → claim verschijnt direct.
 
-**Nog te doen — prod-realm `olvp`** (provider `srvv-infra002-ad`, per app-client): zelfde
-`add-login-claims.sh` draaien (`REALM=olvp LDAP_PROVIDER=srvv-infra002-ad CLIENT_ID=<app-client>`). **LET OP:
-gotcha 2 keert terug op prod** — geef het PROD-bind-account leesrecht op `employeeID` in **olvp.int**
-(`dsacls "DC=olvp,DC=int" /I:S /G "OLVP\<prod-bind-sam>:RP;employeeID;user"`) anders blijft `employee_id`
-daar leeg. Caveat blijft: `mail` gevuld + uniek (duplicateEmailsAllowed=false).
+**Prod-realm `olvp` PRE-STAGED (2026-06-09):** `add-login-claims.sh` gedraaid met
+**`CLIENT_SCOPE=olvp-identity-claims`** (scope-modus i.p.v. per-client, script-commit `dececbc`) →
+realm `loginWithEmailAllowed=true` + LDAP-attr-mappers op provider `srvv-infra002-ad` + een
+**default client-scope** `olvp-identity-claims` met de protocol-mappers → élke toekomstige
+prod-OIDC-client (via `create-oidc-client.sh`) erft de claims automatisch. **Gotcha gevonden+gefixt**:
+de prod-provider heette `" srvv-infra002-ad"` (**leidende spatie!**) → query matchte niet → hernoemd
+naar `srvv-infra002-ad` (component-id `5TW7vK30TFSZgpoLJ_P71w`, `kcadm update components/<id> -s name=`).
+**AD-leesrecht op `employeeID` (olvp.int): GEDAAN (2026-06-09)** — `dsacls`-RP-grant uitgevoerd op een
+olvp.int-DC voor het prod-bind-account, dus `employee_id` is leesbaar (net als op olvp.test). **Nog te doen
+voor prod**: claim-in-token-proef zodra de eerste prod-OIDC-client bestaat (auth_oidc-uitrol) — die erft de
+default-scope `olvp-identity-claims` en dan check je met `generate-example-access-token` tegen een prod-user.
+Caveat: `mail` uniek (duplicateEmailsAllowed=false).
 
 **kcadmin-pw GEROTEERD (2026-06-09) — first-boot-gotcha opgelost.** De live `kcadmin`-pw stond vast op
 de first-boot-waarde (4 juni) terwijl vault/KeePassXC sinds de rekey (5 juni) een andere waarde hielden →
