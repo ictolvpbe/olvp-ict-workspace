@@ -50,8 +50,9 @@ Volledige VLAN-tabel (30+ VLANs over hoofdcampus + remote BAWA + test): zie `pla
 
 **Test-webapps IP-toekenning (VLAN 207):**
 - 10.200.14.1 — gateway
-- 10.200.14.41 — SRVV-TST-ODOO-02 (**verhuist** van 10.200.0.41 bij Caddy-Quadlet-deploy)
-- 10.200.14.x — toekomstige test-webapp-VMs (id-test-VM, acc-test-VM bij splitsing van TST-ODOO-01)
+- **10.200.14.40 — SRVV-TST-ODOO-01** (verhuisd uit 10.200.0.40/VLAN 200 op 2026-06-01; draait sinds id-test-teardown 2026-06-09 enkel nog myschool-test op 8069)
+- 10.200.14.41 — SRVV-DEV-ODOO-01 (ex-TST-ODOO-02; verhuisd van 10.200.0.41; dev-instances myschool-dev/-dev2)
+- ⚠️ **Beheer-toegang**: jump-01 (VLAN 35) → 10.200.14.x werkt; het oude 10.200.0.x is dood. (Stale 10.200.0.40 leidde 2026-06-09 tot SSH-banner-timeouts.)
 
 **TST-WEBAPPS-VLAN aangemaakt (2026-05-31):**
 Tier-discipline-gap (2026-05-29) opgelost: **VLAN 207 `VL-TST-WEBAPPS` `10.200.14.0/23`** ingericht als test-equivalent van VLAN 36 `VL-SD-WEBAPPS`. Plaats in zone "Services" (samen met prod-Webapps; intra-zone deny houdt scheiding). Firewall-rules T-003 t/m T-007 in firewall-rules-matrix gespiegeld op prod-Webapps-pad. **TST-ODOO-02 verhuist** van `10.200.0.41` (VL-TST-SERVICE) naar `10.200.14.41` (VL-TST-WEBAPPS) bij Caddy-Quadlet-deploy. **TST-ODOO-01 blijft** in VL-TST-SERVICE tot prod-Odoo VLAN 33→36 shift — dan samen mee in dezelfde maintenance. Lopende Podman-experimenten op TST-ODOO-02 pragmatisch in 10.200.0.41 voortgezet tot verhuis-window.
