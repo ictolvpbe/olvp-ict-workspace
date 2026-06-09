@@ -200,6 +200,14 @@ eerdere losse aanbeveling "login=email".
    beslissing nu; **mini-ADR wanneer concreet**.
 
 **How to apply (auth_oidc-werf):** `res.users.login`=email + signup uit + match-bestaande met
-fallbacks (sAMAccountName/employeeID-claims) + `sub`→oauth_uid. KC: username-attribuut → mail/UPN,
+fallbacks (sAMAccountName/employeeID-claims) + `sub`→oauth_uid. KC: login-met-email aan,
 extra protocol-mappers voor sAMAccountName + employeeID. Google-brokering pas later, mits
 email-linking rond is.
+
+**Punt 1 (KC-kant) — script klaar, run pending (2026-06-09):** `roles/keycloak/files/add-login-claims.sh`
+(platform-ansible commit `6564e2c`) — idempotent: realm `loginWithEmailAllowed=true` + LDAP-attr-mappers
+`sAMAccountName`+`employeeID` + client protocol-mappers → claims `email`/`samaccountname`/`employee_id`.
+Operator-run op SRVV-ID-01 (kcadmin-pw uit KeePassXC, NIET per se = vault — bootstrap-pw-gotcha).
+**Eerst `olvp-dev`** (client `odoo-myschool-dev2`, provider `olvp-test-ad`), verifiëren via token-decode,
+**dan `olvp`** (provider `srvv-infra002-ad`, per app-client). Caveat: `employeeID` moet in olvp.test-AD
+gevuld zijn (anders claim leeg = ok, is fallback); `mail` gevuld + uniek (duplicateEmailsAllowed=false).
