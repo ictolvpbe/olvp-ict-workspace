@@ -158,7 +158,7 @@ Productie krijgt 2 nieuwe VMs. Test consolideert op bestaande VMs (test-data min
 
 **✅ AUTH_OIDC KEYCLOAK-KANT (A) AF (2026-06-08)**: centraal groepsbeheer voorbereid. `roles/keycloak/files/add-groups-claim.sh` (commit `5f97250`/`fed34a3`): (1) group-ldap-mapper op olvp-test-ad → **235 AD-groepen** uit olvp.test gesynct (groups.dn=DC=olvp,DC=test, member/DN-strategie); (2) oidc-group-membership-mapper op client odoo-myschool-dev2 → `groups`-claim in id/access/**userinfo**-token. **Geverifieerd**: token van mark.demeyer bevat `['bgrp-ict-od','bgrp-pers-bawa','grp-ict-od','grp-pers-bawa']`. Gotcha: protocol-mapper-config = platte strings (component-config = arrays) → arrays gaven "Cannot parse the JSON". LDAP-federated memberships staan NIET in `user_group_membership` (LOAD_GROUPS_BY_MEMBER_ATTRIBUTE = live bij login) — verifieer via het token, niet de DB-tabel.
 
-**RESTEERT = auth_oidc Odoo-kant (B), odoo-dev-werf**: OCA `auth_oidc` vendoren in MySchool_addons + installeren; OIDC-provider (code-flow, discovery, client_id `odoo-myschool-dev2` + secret); `groups`-claim → Odoo-groep-mapping (auth_oidc-basis of custom); **internal user** i.p.v. portal; **login=email**; optioneel lokaal groeps-edit afschermen. Infra (back-channel/AddHost/REQUESTS_CA_BUNDLE/firewall) staat klaar.
+**RESTEERT = auth_oidc Odoo-kant (B), odoo-dev-werf**: OCA `auth_oidc` vendoren in MySchool_addons + installeren; OIDC-provider (code-flow, discovery, client_id `odoo-myschool-dev2` + secret); `groups`-claim → Odoo-groep-mapping (auth_oidc-basis of custom); **internal user** i.p.v. portal; **login=email + geen JIT/link-bestaande + sAMAccountName/employeeID-fallback** (beslist 2026-06-09, zie update onderaan). Infra (back-channel/AddHost/REQUESTS_CA_BUNDLE/firewall) staat klaar.
 
 **(historisch) slice D was**: publieke cutover (HAProxy special-case Keycloak-frontend/backend + path-allowlist + firewall DMZ→`10.35.0.12:443`, beide FQDN's; raakt DMZ → expliciete go). Step-ca certs zijn 24h-validity met auto-renew-timer (zoals Odoo-pattern).
 
@@ -171,3 +171,35 @@ Productie krijgt 2 nieuwe VMs. Test consolideert op bestaande VMs (test-data min
 **olvp.test PKI-topologie (geverifieerd 2026-06-08)**: olvp.test heeft AL een werkende Enterprise CA `olvp-SRVV-TEST-OLVP-CA` + werkende LDAPS — maar op de **oude DC `SRVV-TEST-OLVP` (10.200.0.9, Win2016, wordt uitgefaseerd)**: 10.200.0.9:636 levert cert subject=`CN=SRVV-TEST-OLVP.olvp.test`, issuer=`CN=olvp-SRVV-TEST-OLVP-CA`, geldig tot mei 2027. De nieuwere DC `SRVV-TST-WIN-01` (10.200.0.10) heeft enkel nog **geen DC-cert geënrolld** → daarom 0-bytes-handshake. Prereq-1-fix is dus enrollment, GEEN CA-opzet: op .10 `gpupdate /force` + `certutil -pulse` (of handmatig template *Domain Controller Authentication* via certlm.msc) + reboot. **CA-migratie 10.200.0.9 → SRVV-TST-WIN-01** is een aparte werf bij de 2016-decommission: doe key-behoudend (`Backup-CARoleService` + "use existing private key" + zelfde CA-naam + CRL/AIA/CDP herzien) zodat de root identiek blijft en niets her-uitgegeven/herverdeeld hoeft. **Test-Odoo-instances staan hier los van**: die gebruiken step-ca (Caddy) + LE (HAProxy), niet de olvp.test-CA; key-behoudende migratie raakt ze niet.
 
 Na beide prereqs: olvp.test toevoegen aan `keycloak_truststore_hosts` (role auto-fetch) + realm `olvp-dev` + LDAP-provider (vendor=AD, pagination ON) config. Roadmap-slices voor [2]: A=role prod-klaar (optimized/edge/hostname-strict/localhost-bind), B=Caddy op VM, C=realm olvp-dev (geblokkeerd), D=publieke cutover (HAProxy special-case + firewall DMZ→.12:443, raakt DMZ). Gebruiker wil **beide FQDN's** (id.olvp.be + id-test.olvp.be) als 2 HAProxy-frontends naar dezelfde Keycloak. Zie [[feedback-keycloak-ldaps-truststore]].
+
+---
+
+## Update 2026-06-09 — auth_oidc login/matching BESLIST (na collega-overleg)
+
+Drie punten, te implementeren in de **auth_oidc Odoo-kant (#45, odoo-dev werf)**. Vervangt de
+eerdere losse aanbeveling "login=email".
+
+1. **Login = email.** Gebruikers zijn dit gewoon (= hun M365-login). → Keycloak: username-mapping
+   van de LDAP-federatie naar `mail`/`userPrincipalName` (i.p.v. `sAMAccountName`); `res.users.login`
+   = email. **`sAMAccountName` + `employeeID` worden als extra token-claims meegegeven** (KC
+   protocol-mappers) en dienen als **fallback-matchsleutel** (eerder besproken stabiele sleutel).
+   Primaire IdP-correlatie blijft `sub` → `oauth_uid`.
+
+2. **Geen JIT — link met bestaande lokale Odoo-users.** Signup/auto-create **uit**. Eerste
+   OIDC-login moet de **bestaande** `res.users` vinden (match op email, fallback
+   `sAMAccountName`/`employeeID`) en daaraan `oauth_provider` + `oauth_uid` (sub) koppelen; daarna
+   matcht het op sub. Vereist **custom matching-logica bovenop OCA `auth_oidc`** (default matcht
+   enkel op oauth_uid en creëert bij signup). Users zijn al lokaal aanwezig (bestaande data /
+   MySchool-provisioning, vgl. [[project-moodle-nextcloud-hosting]]).
+
+3. **Google-SSO op termijn — haalbaar via Keycloak Identity Brokering.** Google als externe
+   OIDC-IdP in Keycloak ("Sign in with Google"); apps blijven ongewijzigd (Keycloak = broker).
+   Randvoorwaarden: account-**linking op email** (sluit aan op 1+2 — Google-email moet matchen met
+   AD-email), welke Google-tenant (Workspace for Education?), Google = **extra** auth-pad naast
+   AD-als-credential-SoT (vervangt AD niet), en 2FA-interactie (Google-MFA vs Keycloak-TOTP). Geen
+   beslissing nu; **mini-ADR wanneer concreet**.
+
+**How to apply (auth_oidc-werf):** `res.users.login`=email + signup uit + match-bestaande met
+fallbacks (sAMAccountName/employeeID-claims) + `sub`→oauth_uid. KC: username-attribuut → mail/UPN,
+extra protocol-mappers voor sAMAccountName + employeeID. Google-brokering pas later, mits
+email-linking rond is.
