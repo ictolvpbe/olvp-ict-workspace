@@ -20,6 +20,21 @@ metadata:
 
 **Risico/aanpak (prod)**: AD-DC-migratie = kritieke infra → maintenance-window tijdens schoolvakantie ([[feedback-risk-aware-changes]]); CA key-behoudend; AIA/CDP/DNS-continuïteit; multi-homing-poot weghalen in dezelfde maintenance. Diagnoses op de test-CA waren groen (CertSvc up, `certutil -ping` OK, RPC-pad open) → weg A (enkel enrollen) zou werken, maar C gekozen omwille van de dry-run-waarde.
 
-**Status**: planning. Nog een tracker-rij toe te kennen (analoog aan NET-1 voor [[project-unifi-os-server-migration]]). Geen deadline; gekoppeld aan de VLAN-10-leegmaak-werf.
+**Status**: planning. Tracker NET-2 (verhuizing) + NET-3 (opruim dry-run) + **NET-4 (DNS-client-cutover, nieuw 2026-06-10)**. Geen deadline; gekoppeld aan de VLAN-10-leegmaak-werf.
+
+## Update 2026-06-10 — topologie bevestigd + DNS-client-cutover (NET-4) gepland
+
+**Topologie verhelderd (was open vraag in regel 12):** `10.33.0.10` = **`SRVV-SERV-01`, een distinct gepromoveerde DC** (géén loutere multi-homing-poot van INFRA002). Bewijs: forward A-record `srvv-serv-01.olvp.int`→`10.33.0.10` + hij staat in de **NS-set van `olvp.int`** (adm001, infra002, bsw001, bsp001, edu001, **serv-01**). AD-geïntegreerde zone repliceert er dus al naartoe → hij kan gezaghebbend antwoorden. INFRA002 zelf = multi-homed `10.10.0.10`+`10.10.0.11`. _(De 2026-06-08-note "INFRA002 antwoordt óók op 10.33.0.10:636" was vermoedelijk al SERV-01 vanaf VLAN 35; reachability is per-source-VLAN.)_
+
+**Knelpunt voor client-cutover:** `10.33.0.10` is **niet bereikbaar op :53 vanaf client-VLAN's** (getest vanaf VLAN 34: ping/UDP53/TCP53 falen, traceroute stopt op de VLAN-34-gateway = firewall default-deny VLAN 34→33). Wél bereikbaar op :636 vanaf VLAN 35 (Keycloak-pad ID-001/002). → vóór we clients kunnen ompunten moet het `:53`-pad open (firewall-rules **D-001**/**D-002** in de matrix).
+
+**NET-4 — gefaseerde DNS-client-cutover (besloten 2026-06-10, vóór NET-2):** clients vooraf naar de vervang-DC laten wijzen ipv pas tijdens de maintenance — reversibel, lager risico, ontkoppelt DNS van de CA/VLAN-poot-verhuizing.
+1. **Firewall**: per client-zone (+ VPN-pool) `→ 10.33.0.10:53` UDP+TCP openen (spiegel van de bestaande `→10.10.0.10`-regels) + retourverkeer. Matrix D-001 (VPN) / D-002 (overige).
+2. **Verifieer** vanaf een nu-bereikbare client: `dig @10.33.0.10 olvp.int SOA` + een A-record → antwoordt SERV-01 echt gezaghebbend?
+3. **Secundair eerst**: in DHCP-scopes (+ VPN-push) `10.33.0.10` als **2e** DNS naast `10.10.0.10` → een periode valideren (geen breuk bij uitval van één).
+4. **Primair omzwaaien**: `10.33.0.10` primair maken; `10.10.0.10` als secundair behouden tot INFRA002 effectief gedecommissioned wordt (= deel van NET-2).
+5. Vergeet **statische** verwijzingen niet (server-`resolv.conf`, appliance-DNS, eventuele hardcoded `10.10.0.10`).
+
+**VPN-push = push-both** (besloten 2026-06-10): push `10.10.0.10` **én** `10.33.0.10` (zie [[project-hosting-fase1-status]] acc/VPN + `vpn.md` §Split-DNS); de `.33`-helft is afhankelijk van firewall D-001.
 
 **How to apply**: bij werk rond olvp.int AD, VLAN 10-opruiming of PKI: deze verhuizing meenemen. Eerst de test-migratie (RB-2026-ADCS-TEST) uitvoeren + lessen documenteren, dán prod plannen. Gerelateerd: [[project-naming-convention]] (SRVV-SERV-01), [[feedback-keycloak-ldaps-truststore]] (truststore vangt cert-wijziging automatisch op).
