@@ -34,4 +34,14 @@ Vastgelegd 2026-05-28: scope van [[project-architecture-haproxy]]/step-ca breidt
 - Bij elke nieuwe appliance: check of cert-upload-API/CLI bestaat. Zo ja, agendeer voor het rollout-runbook. Zo nee, beoordeel "achter reverse proxy zetten" als alternatief.
 - Bij security-risk-register: bij een MITM-incident eerst checken of de admin een cert-warning heeft weggeklikt — train tegen die reflex.
 
+## Root-trust-distributie naar endpoints (tweede dimensie, 2026-06-10)
+
+Bovenstaande "coverage" = welke **servers** een cert krijgen. Even belangrijk: welke **clients** de step-ca-**root** vertrouwen (anders blijft de warning staan ondanks geldig servercert). Endpoint-landschap (user 2026-06-10): **ICT op Linux, personeel op Windows-laptops, leerlingen op Chromebooks; Chrome is hoofdbrowser.** Distributie verschilt per platform → drie kanalen:
+- **Windows (personeel, Chrome/Edge)** → AD-GPO *Trusted Root* (Firefox: ADMX `ImportEnterpriseRoots`).
+- **ChromeOS (leerlingen, Chrome)** → **Google Admin Console** cert-policy per OU (enige weg op managed Chromebooks).
+- **Linux (ICT)** → Chrome=NSS (`certutil -d sql:$HOME/.pki/nssdb`) + system `update-ca-certificates`.
+- Cross-platform optie: managed-Chrome-policy `CACertificates` (Chrome 131+).
+
+Root: `platform-ansible/files/step-ca-root.crt`, SHA256 `18:EC:38:9D:…:B5:E1` (volledig in `management-tools/step-ca.md` §Root-trust-distributie). **Tracker SEC-5.** Is **prereq** voor warning-vrije acc-console-toegang ([[project-hosting-fase1-status]] / RB-2026-ACC-CONFIG) + acc-via-VPN. Koppelt aan [[project-client-identity]] (zelfde device-landschap: Chromebooks/Google-managed, Windows, Linux-migratie personeel).
+
 Gerelateerd: [[project-architecture-haproxy]] (TLS terminate+re-encrypt-model), [[project-secrets-management]] (root-key offline), [[feedback-zijsporen-welkom]] (proactief vastleggen).
