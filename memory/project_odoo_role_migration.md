@@ -9,7 +9,7 @@ metadata:
 
 **Scope:**
 - **Wel migreren:** `myschool.olvp.be` (live prod, SRVV-ODOO-01:8069), `myschool-ict.olvp.be` (SRVV-ODOO-01:8070, DB ICT-PROD), `myschool-dev.olvp.be` (TST-ODOO-01:8071, DB odoo-dev), `myschool-dev2.olvp.be` (TST-ODOO-02:8069).
-- **NIET nu:** `myschool-test.olvp.be` (TST-ODOO-01:8069) — **in gebruik door testgroep**, op de planning voor later migreren.
+- **NIET nu:** `myschool-test.olvp.be` (TST-ODOO-01:8069) — **in gebruik door testgroep**, op de planning voor later migreren. **⚠️ PRIO OPGEHOOGD (2026-06-10, incident):** myschool-test ging 503 — de env-pattern-image is te oud voor de huidige Dev-code, die nieuwe `external_dependencies` vereist (`google-api-python-client`, `weasyprint`+system-libs Pango/Cairo) én nieuwe `res.users`-kolommen (`myschool_sap_sync_always_review` → `UndefinedColumn` → 500 → HAProxy backend DOWN → 503). Een addons-update (onbedoeld getriggerd, branch **Dev**, shallow clone) pullde de breukcode; `-u` kon niet (ontbrekende deps) en in-container pleisteren liep vast op weasyprint-system-libs + `-u`-concurrency met de draaiende worker (`SerializationFailure`). **Herstel = restore van de 07/06 vzdump** (VM-backup → DB+code+image consistent terug; niets getest sinds 07/06). **Twee structurele acties**: (1) **myschool-test naar role-based migreren** (image mét alle deps + reproduceerbare `-u`) — dit incident maakt het urgent; (2) **de addons-update-trigger op Dev pauzeren** tot dan (anders pullt 'ie de breukcode zo weer binnen). Les: env-pattern + auto-pull van Dev = tijdbom zodra Dev nieuwe deps/velden krijgt. Zie [[feedback-addons-branch-switch-risico]].
 - ACC-instances zijn al role-based (referentie).
 
 **Bekende blockers/prerequisites (volgorde belangrijk):**
