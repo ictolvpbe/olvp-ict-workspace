@@ -7,6 +7,19 @@ metadata:
 
 Migratie-werf (gepland, geen deadline — tracker-rij **NET-1**): huidige UniFi Network-controller verhuist naar een eigen VM **`SRVV-UNIFI-01`** met **UniFi OS Server** op **Debian 13 minimal**.
 
+**Volledig draaiboek geschreven 2026-06-11**: `hosting/operations/migrate-unifi-controller.md` (**RB-2026-UNIFI-MIGRATE**), 6 fasen + rollback. Werf-taken opgezet (TaskList).
+
+**Bron-controller (bevestigd 2026-06-11)**: GEEN CloudKey/UDM — klassieke self-hosted **`unifi`-package (Java+MongoDB) op een Debian 12-host**, Network-versie **10.0.162**, enkel de Network-applicatie (géén Protect/Access/Talk), beheert **switches + WAPs** (gateway = UniFi Gateway Pro, praat lokaal met de controller-host).
+
+**Feasibility-verdict ✅ GO (2026-06-11)**:
+- `.unf` Network-backup = exact het migratie-backup-type; met enkel Network is 100% van de config porteerbaar.
+- Gateway Pro = extern-beheerde UXG (geen embedded controller zoals UDM) → volledig adopteerbaar door self-hosted controller; toekomstige Enterprise Fortress Gateway idem.
+- **Versie-eis**: nieuwe controller moet Network **≥ 10.0.162** draaien vóór restore (anders "backup is newer than installed") → eerst updaten, dán restoren.
+- UniFi OS Server-reqs (Podman ≥ 4.3.1, slirp4netns ≥ 1.2, systemd, libc ≥ 2.31) zitten in de Tier-1 baseline.
+- **UniFi OS Server gekozen** (niet de klassieke package opnieuw) — Ubiquiti's aanbevolen next-gen self-hosting, containerized op Podman, lijnt met ADR 0004 + golden-image.
+- **Huidige controller-IP = `10.10.100.15`** (VLAN 10-range). **`unifi.olvp.int` bestaat al** en wijst naar die controller → wordt de **cut-over-hefboom**: bij build alleen `SRVV-UNIFI-01.olvp.int`→.15 aanmaken, en pas op cut-over-moment `unifi.olvp.int` flippen `10.10.100.15`→`10.35.0.15`.
+- **Inform-host bevestigd (2026-06-11)**: devices informeren via **hardcoded IP** `http://10.10.100.15:8080/inform` (gezien op een WAP), NIET via de hostname → kale DNS-flip werkt pas na conversie. **Strategie (Fase 0b in runbook)**: op de OUDE controller eerst `Override Inform Host = unifi.olvp.int` zetten + provisionen (geen downtime — hostname resolvt nu al naar .15-oud = 10.10.100.15) → daarna is de cut-over louter het DNS-record flippen `10.10.100.15`→`10.35.0.15` (Pad 1). Voorwaarde: devices kunnen `unifi.olvp.int` resolven via hun DHCP-DNS. Anders fallback Pad 2 = `set-inform http://10.35.0.15:8080/inform` per device. **Firewall NM-001/NM-002 moet actief zijn vóór de flip** (devices op hun VLAN → controller VLAN 35).
+
 **Plaatsing (vastgelegd 2026-06-07):**
 - VLAN **35** (`VL-SD-MGMTSVC`), IP **`10.35.0.15`** (gewijzigd van `.3` → `.15` op 2026-06-09, user-keuze; appliance-blok bij Semaphore `.10`/Forgejo `.11`/Keycloak `.12` i.p.v. core-blok `.2-.9`), DNS `SRVV-UNIFI-01.olvp.int` + alias `unifi.olvp.int`. Zie [[project-infrastructure-params]].
 
