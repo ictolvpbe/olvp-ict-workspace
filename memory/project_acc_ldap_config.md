@@ -20,4 +20,8 @@ metadata:
 
 **Verificatie-techniek (herbruikbaar)**: bind+search-test via `podman exec -i odoo_instance_2 python3` met de creds uit `res_company_ldap` via stdin (pw blijft op de VM, nooit in agent-context). De container heeft `LDAPTLS_CACERT=/etc/ssl/certs/ca-certificates.crt` → StartTLS-CA-trust werkt.
 
-**Nog te doen**: (a) echte login-test door user met een ICT-AD-account (re-bind met user-pw — JIT-user-creatie + admin-rechten verifiëren); (b) 2FA (stap 2 runbook); (c) audit-logging (stap 3); (d) herhalen op **prod** (olvp.int, memberOf-groep-filter mogelijk). Gerelateerd: [[project-hosting-fase1-status]], [[project-ad-serv01-migration]], [[project-identity-architecture]].
+**Login-test ✅ (2026-06-11)**: user logde in met een ICT-AD-account, JIT-`res.users` aangemaakt met admin-rechten.
+
+**MySchool-apps geïnstalleerd op acc-test (2026-06-11)**: `myschool_admin` + `myschool_sync` + `myschool_servermanager` (+ deps `myschool_core`, `myschool_theme`) op branch **`test`** (instances.yml acc-test `addons_branch: Dev`→`test`; addons-update gepulld in `addons2`). 47 modules installed. **muk_web_\*** zijn gitignored/extern → door addons-update gearchiveerd, géén van de gekozen modules hangt ervan af. **Demo-data**: de install bracht demo-users mee (`medewerker@test.com`, `directie@test.com`, `boekhouding@test.com`, `vervangingen@test.com`, `beheerder@test.com`) — OK op test; **bij PROD `-i ... --without-demo=all`** gebruiken.
+
+**Nog te doen**: (a) 2FA (stap 2 runbook); (b) audit-logging (stap 3); (c) herhalen op **prod** (olvp.int, memberOf-groep-filter mogelijk + `--without-demo`). Gerelateerd: [[project-hosting-fase1-status]], [[project-ad-serv01-migration]], [[project-identity-architecture]], [[project-odoo-addons-repo]].
