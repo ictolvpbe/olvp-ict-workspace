@@ -58,3 +58,4 @@
 - [Workspace-repo + onboarding](project_workspace_repo_onboarding.md) — Claude-context in private repo ictolvpbe/olvp-ict-workspace; 3 repos = 1 werkmap; runbook RB-2026-ONBOARD-WS; memory-sync-gotcha bij parallel werken
 - [Moodle + Nextcloud hosting](project_moodle_nextcloud_hosting.md) — 2 nieuwe publieke app-werven (tracker APP-1/APP-2): auth via Keycloak-OIDC, accounts/groepen/mappen gesynct vanuit MySchool; test eerst, HA later; open beslissing groeps-SoT (AD vs MySchool)
 - [DNS-forwarders DNS4EU](project_dns_forwarders.md) — externe forwarder-standaard (NET-5, SJ 2026-2027): staf→Protective 86.54.11.1, basisscholen/leerlingen→Child Protection 86.54.11.12; via AD-DC-forwarders + NXfilter-upstream; EU/GDPR-vriendelijk
+- [Werkstation ansible-key](project_workstation_ansible_key.md) — LPT-SCHK (/home/kristof) mist canonical ansible-targets-ssh; deploys lukken pas na correcte key-install; KeePassXC-entry-verwarring service-account vs targets-ssh
