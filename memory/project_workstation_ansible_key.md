@@ -1,22 +1,22 @@
 ---
 name: project-workstation-ansible-key
-description: "Werkstation LPT-SCHK (/home/kristof) mist de canonical ansible-targets-ssh private key; deploys vanaf deze PC werken pas na correcte key-install. CLAUDE.md/historie verwijst naar oudere demm-machine."
+description: "Werkstation LPT-SCHK (/home/kristof) HEEFT de canonical ansible-key wél (~/.ssh/ansible_olvp, comment ansible-service-account). De eerdere 'verkeerde key'-diagnose was een valse gevolgtrekking. CLAUDE.md/historie verwijst naar oudere demm-machine."
 metadata:
   type: project
 ---
 
-Dit werkstation is **`LPT-SCHK`** (`/home/kristof/SchoolProjects/olvp-ict/`, git-user `ictolvpbe`, `kristof.schalckens@olvp.be`). De CLAUDE.md en eerdere deploy-historie verwijzen naar `/home/demm/` = een **ouder/ander werkstation** dat de canonical ansible-key wél had.
+Dit werkstation is **`LPT-SCHK`** (`/home/kristof/SchoolProjects/olvp-ict/`, git-user `ictolvpbe`, `kristof.schalckens@olvp.be`). De CLAUDE.md en eerdere deploy-historie verwijzen naar `/home/demm/` = een **ouder/ander werkstation**.
 
-**Knelpunt (ontdekt 2026-06-12):** lokale Ansible-deploys (remote-first playbooks die niet via Semaphore kunnen, [[feedback-semaphore-runner-remote-hang]]) lukken niet vanaf LPT-SCHK omdat de **canonical `ansible-targets-ssh` private key** hier niet stond. Stack-VM's weigeren `ansible@`-SSH (`Permission denied (publickey)`).
+**CORRECTIE (2026-06-15) — de "verkeerde key"-diagnose van 2026-06-12 was FOUT.** Het werkstation HEEFT de canonical key wél: **`~/.ssh/ansible_olvp`** (fp `SHA256:DpQLouNSmge8uyhCapNKeOoD51pOpsiDmrIgNbuq3Zg`, comment `ansible-service-account`). Bewezen werkend: authenticeert als `ansible@` op **jump-01 (10.35.0.2)** én **srvv-unifi-01 (10.35.0.15)** op 2026-06-15. Deze key zit ook in mijn ssh-agent.
 
-**Gotcha's bij het oplossen:**
-- Het werkstation heeft enkel een **persoonlijke** `~/.ssh/id_ed25519` (`kristof.schalckens@olvp.be`, aangemaakt 2026-06-11) — niet de service-key.
-- KeePassXC-entry-verwarring: er bestaan keys met comment **`ansible-service-account`** (= leeg/problematisch volgens [[feedback-semaphore-key-canonical]]) én de echte canonical **`ansible-targets-ssh`**. Een geëxporteerde `ansible_olvp` (comment `ansible-service-account`, fp `SHA256:DpQLou…`) werd door een verse golden-image-clone GEWEIGERD → exporteer gericht de `ansible-targets-ssh`-entry. Private key zit in die entry mogelijk als **attachment** (het `ssh-ed25519`-veld toont enkel de publieke helft).
-- Bij export-fouten: bestand kan als **root** + **publieke** key belanden (`chmod`/`ssh-add` falen dan). Installeer als eigenaar kristof, `chmod 600`, `ssh-add` (of KeePassXC SSH-Agent-integratie).
-- `ansible.cfg` definieert géén `private_key_file` (gedeeld, committed — niet wijzigen voor demm-machine) → gebruik **ssh-agent** of `--private-key`.
+**Waarom de oude diagnose fout was:** srvv-unifi-01 weigerde de key niet omdat hij verkeerd was, maar omdat **die VM toen nog geen `/home/ansible/.ssh/authorized_keys` had** (verse golden-image-clone; `ansible`-account aanwezig uid 1001 maar `.ssh` nooit gevuld + een transiënte NSS/hostname-glitch maakte `getent passwd ansible` even leeg). Een VM zónder ansible-bootstrap weigert *élke* key → daaruit "key is verkeerd" afleiden is een valse gevolgtrekking.
 
-**Verifieer welke key een VM vertrouwt** via console: `sudo ssh-keygen -lf /home/ansible/.ssh/authorized_keys`, vergelijk met `ssh-add -l`.
+**Naam-val (belangrijk):** de comment `ansible-service-account` ≠ de lege/kapotte Semaphore-keystore-credential met diezelfde naam. Het is net de canonical key die Semaphore opslaat onder credential-naam **`ansible-targets-ssh`** ([[feedback-semaphore-key-canonical]]). Key-*comment* ≠ Semaphore-credential-*naam* — niet verwarren.
 
-**Why:** bus-factor ([[project-bus-factor]]) + secrets-hygiëne ([[project-secrets-management]]) — de canonical service-key hoort betrouwbaar terugvindbaar in KeePassXC én op elk admin-werkstation. Dat hij hier ontbrak/verwarrend opgeslagen was, is een te dichten gat.
+**How to apply / les:** om te bepalen of een service-key canonical is, **test 'm tegen een VM die het `ansible`-account al heeft** (bv. `ssh -i <key> ansible@10.35.0.2 whoami`), nooit tegen een verse/ongeprovisionede VM. Bij een nieuwe VM die SSH weigert: check eerst `getent passwd ansible` + `/home/ansible/.ssh/authorized_keys` op de target (account-bootstrap, RB `provision-ansible-account.md`) vóór je de key verdenkt.
 
-**How to apply:** controleer bij een nieuw/ander OLVP-admin-werkstation eerst of `ssh-add -l` de `ansible-service-account`/`ansible-targets`-service-key toont vóór je lokale deploys plant; zo niet, eerst de key-install regelen.
+**Why:** bus-factor ([[project-bus-factor]]) + secrets-hygiëne ([[project-secrets-management]]) — de canonical key is betrouwbaar terugvindbaar (KeePassXC + lokaal `~/.ssh/ansible_olvp`).
+
+**Los-eindjes hygiëne op LPT-SCHK:**
+- `~/.ssh/known_hosts` is **root-owned** → `sudo chown kristof:kristof ~/.ssh/known_hosts` (anders "Failed to add the host", host-key-pinning werkt niet).
+- Dubbele kopie `~/Downloads/ansible_olvp(.pub)` (mode 664, private key!) → verwijderen na gebruik.

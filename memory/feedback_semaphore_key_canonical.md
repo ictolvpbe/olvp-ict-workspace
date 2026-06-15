@@ -14,4 +14,6 @@ In Semaphore Key Store is **`ansible-targets-ssh`** de canonieke werkende SSH-ke
 - `ansible-service-account` in Key Store laten staan kan, maar gebruik 'm pas als we expliciet een aparte service-account-key uitrollen (geen acute reden)
 - Als nieuwe doc verwijst naar `ansible-service-account`: corrigeer in dezelfde commit (management-tools/semaphore.md was reeds gecorrigeerd op 2026-06-02)
 
+**Naam-val (2026-06-15):** de canonieke key onder Semaphore-credential `ansible-targets-ssh` heeft als **key-comment** net `ansible-service-account` (fp `SHA256:DpQLou…`). De Semaphore-*credential* `ansible-targets-ssh` en de key-*comment* `ansible-service-account` slaan dus op dezelfde key — verwar de credential-naam niet met het key-comment, en niet met de lege/kapotte gelijknamige credential. Zie [[project-workstation-ansible-key]] (waar dit een valse "verkeerde key"-diagnose veroorzaakte).
+
 Gerelateerd: [[feedback-service-accounts]], [[project-hosting-fase1-status]] (Semaphore-runner SSH-pad).
