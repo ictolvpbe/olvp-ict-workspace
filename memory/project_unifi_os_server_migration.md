@@ -61,6 +61,21 @@ Migratie-werf (gepland, geen deadline — tracker-rij **NET-1**): huidige UniFi 
 
 **Fase 2 volledig afgerond (2026-06-15)**: lokale UniFi OS-admin aangemaakt (browser, https://10.35.0.15:11443), en **Network-applicatie 10.4.57 stond al op de OS Server** (≥ 10.0.162 → restore-eis ruim voldaan, geen update nodig). Firewall-matrix A-002/A-003 al gecorrigeerd naar 11443 (handbook, doc-edit — commit-status: zie sessie).
 
+**FASE 0b-PREP — estate volledig in kaart + flip-script gebouwd (2026-06-18):**
+- **API-read op de OUDE controller** (`https://10.10.100.15:8443`, klassieke Network-API, login `zeus`): 1 site `default` (OLVP-Sint-Niklaas), **236 devices** = 174 AP (`uap`) + 62 switch (`usw`). 229 connected, 7 disconnected.
+- **Inform-host-verdeling (vóór flip)**: 114 op hardcoded `10.10.100.15`, 37 op korte naam `unifi`, 85 op FQDN `unifi.olvp.int`. De 122 die via de naam informeren+connected zijn, bewijzen al resolutie+bereik.
+- **Ping-test (alle 236, SSH `mca-cli-op` per device vanaf werkstation)**: 226 PING_OK, 2 partial (BZ-link), 8 SSH_FAIL. **227/228 resolven `unifi.olvp.int → 10.10.100.15` correct.**
+- ⚠️ **Gateway-DNS-kaping LIVE bevestigd op `SW-PPARKING-02` (10.10.110.39)**: resolvt `unifi.olvp.int → 10.1.0.1` (gateway-interface, niet de controller). Nu veilig want informeert via hard IP; mág NIET mee-geflipt worden tot zijn DHCP-scope de AD-DC als DNS krijgt. = de gotcha uit Fase-1-status, nu echt waargenomen.
+- **8 SSH_FAIL**: 7 stale/disconnected (5 letterlijk `-OUD`, state=0 → controller-opruimkandidaten) + 1 LIVE switch `SW-PP202-01` (10.10.110.226) die SSH weigert (verder gezond volgens controller).
+- **BZ/192.168-poot volledig geënumereerd: 30 devices (8 sw + 22 ap, 192.168.0.200-235)**, allen resolven `unifi.olvp.int→10.10.100.15` en bereiken de OUDE controller (VLAN 10). Bevestigt: **split-off blijft verplicht** — na DNS-flip wijst de naam naar 10.35.0.15 (VLAN 35), voor hen onbereikbaar. Lijst beschikbaar voor dedicated on-site controller / routing-fix.
+- **Doelgroep Fase 0b-flip = 125 10.x-devices** (107 op IP + 18 op korte naam), uitgesloten: 78 al-FQDN + 30 BZ + 1 gateway-kaping + 8 SSH/stale.
+- **Script gebouwd**: `hosting/operations/unifi-fase0b-set-inform.sh` — flipt één-voor-één naar `unifi.olvp.int` met LIVE pre-checks (her-resolve+ping vlak vóór flip, skip bij resolve≠controller) + device-side post-check. `MODE=dry` default, `MODE=apply [LIMIT=N]` voor gefaseerde rollout.
+- **APPLY GEDRAAID + GROTENDEELS AFGEROND (2026-06-18)**: 3 runs (1 + 10 + rest). **112 devices geflipt naar FQDN, 0 warnings, allen Connected gebleven.** Estate-stand inform-host: **85→197 op `unifi.olvp.int`**, 37→20 korte naam (≈BZ), 114→19 hard IP. Resterend bewust níét geflipt:
+  - **~13 SSH-weigerende switches** (alle `usw`, op 10.10.110.x + SW-PC007-01 op 10.10.100.51): SW-PP101-01, PC112-01, PL208-C1-BACKUP, PK2T1-01, PG1B1-01, PP103-02, PN101-01, PP202-01, PA3B1-01, PC007-01, PC102-01, PM008-01, PP106-01. Per-device lukt niet → optie (a) SSH aanzetten via controller + herdraaien, of (b) controller-side globale Override Inform Host als sluitstuk (⚠️ raakt ook BZ → pas ná BZ-split-off).
+  - **2e gateway-DNS-kaping ONTDEKT (live-check ving het)**: `WAP-PA104-01` (10.1.111.12) resolvt `unifi.olvp.int → 10.1.0.1`, idem `SW-PPARKING-02` (10.10.110.39). ⇒ de kaping is **niet scope-beperkt**; vóór de globale DNS-flip moeten **alle DHCP-scopes de AD-DC als DNS** krijgen i.p.v. de gateway. Deze 2: eerst DNS fixen, dan flippen.
+  - **BZ/192.168-poot** (≈20 op korte naam) bewust onaangeroerd → split-off-beslissing.
+- **Device-CLI-gotcha** (zie [[feedback-unifi-device-noninteractive-cli]]): `info`/`set-inform` zijn interactieve shell-aliassen → non-interactief `mca-cli-op info` / `mca-cli-op set-inform <url>`; káál `mca-cli-op` loopt oneindig (genereerde 154MB). SSH-automation: device-user `zeus`, `ssh -n` verplicht in while-read-loop, `SSH_ASKPASS`-truc voor pw.
+
 **VOLGENDE — de eigenlijke cut-over (runbook RB-2026-UNIFI-MIGRATE, vakantie-window aanbevolen, géén dataplane-impact maar controller-down):**
 - **Fase 0** (nu veilig, niet-destructief): `.unf`-backup downloaden van de OUDE controller (10.10.100.15) → Settings → Control Plane → Backups → Download. Bewaren buiten de oude host.
 - **Fase 3**: vzdump nieuwe VM → oude `systemctl stop unifi` → `.unf` restoren op SRVV-UNIFI-01.
