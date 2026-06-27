@@ -72,7 +72,15 @@ myschool-dev (8070 dev-VM), myschool-test (8069 tst-VM), myschool-ict (8070 srvv
 
 **Fase ACC = functioneel klaar 2026-06-27** (groepen ✅, intern E2E 200/303 ✅). Rest user: admin-USER-pw op beide DBs + KeePassXC; cleanup `.bak`/cruft + oude AD-records na acceptatie.
 
-**TEST / PROD**: nog niet gestart. TEST = intranet-test (8070) NAAST myschool-test (8069) op srvv-tst-odoo-01, branch test, public — geen decommission. PROD = srvv-odoo-01 (VLAN36, addons-update lokaal!), vervangt myschool.olvp.be, DNS-cutover pas ná oude intranet-app (juli).
+**Cleanup (2026-06-27, na admin-pw's gezet):**
+- ✅ Sessie-vangnet weg: `*.myschool-dev2-bak` (dev-odoo-01, ~203MB) + `*.myschool-acc[-test]-bak` (acc-01, ~285MB) + oude FQDN Caddy-certs (myschool-dev2 / myschool-acc[-test]).
+- ✅ HAProxy wees-certs `myschool-dev2.olvp.be` + `id-test.olvp.be` weg op haproxy-1 + -2 (certbot delete + pem + reload).
+- ⏳ User: acc-01 pre-existing cruft (`_legacy-addons2-*` + slot3-wezen db3/odoo3/addons3/config3) — classifier blokkeerde Claude (pre-existing data), user ruimt op. DNS-records (C): oude `myschool-acc[-test].olvp.int` (AD) + `myschool-dev2.olvp.be` (one.com).
+- ⚠️ **Gotcha**: bij FQDN-teardown ook de Caddy-cert-files verwijderen, niet enkel het blok → anders wees-certs.
+
+**🔴 INCIDENT tijdens cleanup ontdekt + opgelost — myschool-test ~16d publiek 503:** wees-certs braken de step-ca renew-loop (set -e) → cascade-expiry → HAProxy verify required → backend DOWN. Volledig in [[feedback-caddy-cert-renew-fail-isolation]]. Fix: template `caddy-cert-renew.sh.j2` per-cert fail-isolatie (commit d18ec3d) + wees-certs weg + myschool-test-cert vers uitgegeven (user). **Status 2026-06-27: myschool-test publiek 200, backend UP.** RESTEERT: (a) template uitrollen `caddy.yml --limit webapps`; (b) dev-odoo-01 + acc-01 checken op wees-certs/idem renewal-breuk.
+
+**TEST / PROD**: nog niet gestart (TEST gepauzeerd op gebruikersverzoek vóór deploy; SoT-entry intranet-test staat al in instances.yml, niets gedeployed). TEST = intranet-test (8070) NAAST myschool-test (8069) op srvv-tst-odoo-01, branch test, public — geen decommission. PROD = srvv-odoo-01 (VLAN36, addons-update lokaal!), vervangt myschool.olvp.be, DNS-cutover pas ná oude intranet-app (juli).
 
 ## Te schrijven
 Runbook `platform-handbook/hosting/operations/deploy-intranet-instances.md` (na DEV-bewijs, analoog RB-2026-TST-ROLE-MIGRATE).
