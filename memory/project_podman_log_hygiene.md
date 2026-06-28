@@ -40,7 +40,9 @@ HAProxy-1/2 + pve-nodes: vermoedelijk geen Podman-healthchecks (HAProxy native, 
 4. **Verificatie**: per host `/var`-% gedaald/stabiel + 0 nieuwe health_status-regels na rsyslog-restart.
 
 ## Status
-- 2026-06-28: werf aangemaakt. FORGEJO-01 gefixt (referentie-implementatie). Discovery-survey van overige hosts nog te doen (prod gateert op OK). Baseline-codificatie nog te doen.
+- 2026-06-28: werf aangemaakt. FORGEJO-01 gefixt (referentie-implementatie).
+- 2026-06-28: **Fase 1 (baseline-codificatie) KLAAR** — commit `10a986e` op platform-ansible: `tier1-baseline.yml` heeft nu rsyslog drop-filter (`/etc/rsyslog.d/49-drop-podman-health.conf`, gated op rsyslog-aanwezigheid) + globale logrotate `maxsize 200M` + `Restart rsyslog` handler. Elke NIEUWE Tier-1-VM krijgt het automatisch. Nog niet via playbook-run getest (vault-pw vereist; tier1-baseline raakt group_vars/all/vault auto-load).
+- **Nog te doen**: discovery-survey overige hosts (non-prod kan direct; prod gateert op OK) → retrofit door `tier1-baseline.yml --tags log-hygiene` op bestaande hosts te draaien (idempotent, raakt enkel rsyslog/logrotate). Prod (srvv-odoo-01/acc-01) in onderhoudsvenster.
 
 ## Gerelateerd
 - [[project-forgejo-status]] — incident-oorsprong + bewezen fix-details
