@@ -45,8 +45,15 @@ HAProxy-1/2 + pve-nodes: vermoedelijk geen Podman-healthchecks (HAProxy native, 
 - **GEPLAND voor binnenkort (richt: begin juli 2026)** — retrofit bestaande hosts via `ansible-playbook tier1-baseline.yml --tags log-hygiene --limit <host>` (idempotent, raakt enkel rsyslog/logrotate, geen stack-restart). Volgorde:
   1. **Non-prod eerst** (tst-odoo-01, dev-odoo-01, srvv-id-01, srvv-unifi-01) — laag risico, normale uren. Survey loopt mee (severity zichtbaar bij de run).
   2. **Prod** (srvv-odoo-01, srvv-acc-01) — in een onderhoudsvenster, met expliciete OK van de user. Read-only severity-check eerst (kan al kritiek zijn → dan eerder inplannen).
-- **Open vraag voor user**: prod-onderhoudsvenster vastleggen.
-- **WBS-registratie**: nog in `myschool.project` onder D-MON zetten (geblokkeerd op dode myschool-MCP-key sinds 2026-06-07, [[reference-mcp-projects-provider]]).
+- **REMINDER gezet 2026-06-28**: cloud-routine `trig_01MFXyFp64NXLV74WQx7S6Po` vuurt **2026-06-29 09:00 CEST** (07:00 UTC) → leest deze memory en levert een draaiklare checklist in het routines-overzicht (claude.ai/code). NB: cloud kan NIET bij interne VMs → het is een reminder, geen auto-uitvoering; user draait de retrofit zelf vanaf het werkstation, ik (werkstation-sessie) begeleid runs + verificatie zodra user het seintje geeft.
+
+## TODO (volgende sessie, 29 juni)
+- [ ] Non-prod retrofit draaien: `ansible-playbook tier1-baseline.yml --tags log-hygiene --limit tst_webapps:dev_webapps:idp_servers:unifi_servers` (vanaf werkstation, vault-pw indien gevraagd).
+- [ ] Per-host verifiëren: `/var`-% gedaald/stabiel, 0 nieuwe `health_status` na rsyslog-restart, containers healthy.
+- [ ] Severity die de survey toont noteren; bestaande grote logs truncaten waar `/var` al vol staat.
+- [ ] **Prod-onderhoudsvenster** vastleggen met user (srvv-odoo-01/acc-01) → fase 3.
+- [ ] **WBS-registratie** onder D-MON in `myschool.project` zodra myschool-MCP-key hersteld is (dood sinds 2026-06-07, [[reference-mcp-projects-provider]]).
+- [ ] Bevestigen of HAProxy-1/2 + pve-nodes Podman-healthchecks draaien (vermoedelijk N.V.T.).
 
 ## Gerelateerd
 - [[project-forgejo-status]] — incident-oorsprong + bewezen fix-details
