@@ -1,8 +1,33 @@
 ---
 name: project-forgejo-status
-description: Forgejo provisioning werf #30 — SRVV-FORGEJO-01 op 10.35.0.11 (VLAN 35 mgmt). Tier 1 baseline klaar, postgres-connectie-issue ondanks ACC-01-patroon (pg:15 + Podman-secret) — werf gepauzeerd 2026-06-03 na ~4u investigation.
+description: Forgejo provisioning werf #30 — SRVV-FORGEJO-01 op 10.35.0.11 (VLAN 35 mgmt). MISDIAGNOSE GECORRIGEERD 2026-06-28: het "postgres pq-driver"-issue was nooit postgres — Forgejo crash-loopt op SSH-bind poort 22 (UID 1000, geen CAP_NET_BIND_SERVICE). Postgres-in-podman werkt prima (121 tabellen). Fix: START_SSH_SERVER=false.
 metadata:
   type: project
+---
+
+**Status 2026-06-28 — root cause gevonden, postgres-mysterie was MISDIAGNOSE**:
+
+Vergelijking SRVV-FORGEJO-01 ↔ SRVV-ACC-01 (read-only, infra-ops) weerlegde de Podman-versie-hypothese: **beide draaien bit-identiek Podman 5.4.2 + netavark 1.14.0 + kernel 6.12.90, zelfde subnet 10.89.0.0/24**. NetworkAlias `db` registreert WEL correct (oude memory-notitie hierover was fout).
+
+De echte oorzaak stond in de `forgejo.service`-journal (restart-counter **209.464**, continue crash-loop):
+- DB-connectie LUKT bij poging #1: `PING DATABASE postgres` → `ORM engine initialization successful!`. De `forgejo`-DB heeft **121 tabellen** → migratie ooit volledig geslaagd, draait écht op postgres (geen sqlite-bestand).
+- Crash: `[E] Unable to GetListener: listen tcp :22: bind: permission denied` → `[F] Failed to start SSH server` → `Received signal 15; terminating.`
+- Forgejo's ingebouwde Go-SSH-server (`START_SSH_SERVER=true`, `SSH_LISTEN_PORT=22`) probeert `0.0.0.0:22` te binden als UID 1000 zonder `CAP_NET_BIND_SERVICE` → EACCES → FATAL.
+- De `Connection reset by peer`-regels in de postgres-journal zijn **collateral**: gezonde DB-connecties die met RST sneuvelen als het proces ~2s later FATAL exit. Geen auth-/protocolfout. We hebben 2/3-juni het verkeerde spoor gevolgd.
+
+**Conclusie**: postgres-in-podman is robuust op deze stack (zoals ACC-01) — Podman+Quadlet-conventie hoeft niet gebroken. Geschikt voor multi-team gebruik (reden om postgres i.p.v. sqlite te houden).
+
+**Fix DOORGEVOERD 2026-06-28 (Optie A)**: `START_SSH_SERVER = false` in `app.ini [server]` (git-over-SSH via openssh in image, bindt 22 als root; bestaande `PublishPort=127.0.0.1:2222:22` blijft). Resultaat geverifieerd:
+- `forgejo.service` = **active**, NRestarts=**0** (was failed/209k-loop); `curl :3000` = **200 OK**; Caddy publieke route **502→200** (HTTP/2, Host git.olvp.int).
+- Backup live config: `/opt/forgejo/config/conf/app.ini.bak-20260628`.
+- Template `templates/forgejo.app.ini.j2` ook gefixt — **uncommitted** in working tree, wacht op review/commit.
+- Nevenfix: `caddy.service` stond failed (losse podman exit-125 van 13-jun) → hersteld, active.
+- Cert-renewal-timer (`caddy-cert-renew.timer`) uitgerold met fail-isolatie. Host-pad-afwijking t.o.v. Odoo/Caddy-VMs: `step` op `/usr/bin/step`, root op `/root/.step/certs/root_ca.crt` (i.p.v. `/usr/local/...`). Nu OOK in playbook (commit `a0d3f1d`): `forgejo.yml` deployt script+service+timer; `caddy-cert-renew.sh.j2` geparameteriseerd met `step_bin`/`step_root_ca` (defaults = caddy.yml-gedrag ongewijzigd), forgejo.yml geeft de host-correcte overrides → handmatige uitrol nu idempotent reproduceerbaar.
+
+**Admin-account 2026-06-28**: bootstrap via app.ini maakt GEEN admin (alleen install-wizard-skip); user-list was leeg → eerste admin handmatig aangemaakt via `podman exec -u git forgejo forgejo admin user create`. Account: **`dries.vanmoer`** (ID 1, IsAdmin=true, email dries.vanmoer@olvp.be). Wachtwoord in KeePassXC `olvp-forgejo-admin` (must-change-password=false; 2FA nog in te schakelen). Registratie staat uit (`DISABLE_REGISTRATION=true`) dus nieuwe users ook via CLI of door admin in UI. Login: `https://git.olvp.int/`. Alias `forgejo.olvp.int` losgelaten — we houden het bij `git.olvp.int` (alias werkte niet na reboot; niet verder onderzocht op user-verzoek).
+
+**RESTERENDE BLOCKER**: `/etc/caddy/git.olvp.int.crt` is verlopen sinds 3-jun (24u-cert van 2-jun). `curl -k` verbergt dit; echte browser/HAProxy `verify required` weigert het. Renewal-timer kan verlopen cert NIET redden (verlopen=geen auth). Eerst vers cert uitgeven met provisioner-pw (KeePassXC `olvp-stepca-admin-provisioner-password`): `sudo step ca certificate git.olvp.int /etc/caddy/git.olvp.int.crt /etc/caddy/git.olvp.int.key --san git.olvp.int --san forgejo.olvp.int --not-after=24h --provisioner=admin` + `systemctl restart caddy`. Daarna neemt de timer het handenvrij over.
+
 ---
 
 **Status 2026-06-03 (sessie-einde)**: Forgejo-werf gepauzeerd, niet operationeel. Reproduceer-poging met ACC-01-patroon (pg:15 + Podman-secret + NetworkAlias) faalde identiek aan 2026-06-02 setup. Forgejo binary's pq-driver geeft TCP-connection-reset zonder ooit auth te voltooien.
