@@ -85,6 +85,12 @@ Migratie-werf (gepland, geen deadline — tracker-rij **NET-1**): huidige UniFi 
 - **Estate-stand 2026-06-29 (controller-API, 236 devices): 194 FQDN · 24 korte naam · 18 hard IP.**
 - **STRATEGIE-HERZIENING**: duurzame inform-host = **controller-side Override Inform Host = `unifi.olvp.int`** (`super_mgmt.override_inform_host=True`), niet per-device. Maakt per-device flips overbodig + survived provisions. **PREREQ vóór veilig inschakelen**: álle DHCP-scopes → **AD-DC als DNS** (anders breken de gateway-DNS-kaping-devices — SW-PPARKING-02 10.10.110.39, WAP-PA104-01 10.1.111.12 — onmiddellijk want `unifi.olvp.int`→10.1.0.1 gateway-interface). BZ/192.168-split-off blijft prereq voor de DNS-flip zélf. Beslissing + window bij user (= tracker-taak #5). Controller-wijziging NIET unilateraal gedaan.
 
+**DNS-KAPING RE-SCAN (2026-06-29, na sessie 1) — kaping vrijwel verdwenen:**
+- User zette handmatig de voorkeur-DNS van `SW-PPARKING-02` (10.10.110.39) → AD-DC `10.10.0.10`. Geverifieerd: resolvt nu `unifi.olvp.int → 10.10.100.15` ✅ (was kaping).
+- **Volledige resolutie-sweep over alle 19 niet-FQDN/niet-BZ-toestellen**: **17 resolven al correct** naar 10.10.100.15 (incl. `WAP-PA104-01` 10.1.111.12 — het ándere bekende kaping-geval van 2026-06-18 — dat de user NIET aanraakte; zelfs de kále `unifi` resolvt daar nu naar 10.10.100.15, terwijl z'n primaire nameserver de gateway 10.1.0.1 is). **De gateway-kaping reproduceert dus nergens meer op de bereikbare estate** — situatie blijkbaar al breed verbeterd sinds 18/06.
+- **2 niet te verifiëren vanaf werkstation**: `SW-PP202-01` (10.10.110.226, L2-onbereikbaar via WiFi maar controller-connected) + `WAP-PN101-01` (10.1.111.190, state=0/disconnected = down, los probleem).
+- **Gevolg**: de DNS-prereq voor de globale Override Inform Host is vrijwel rond (op die 2 + BZ na). Aanbeveling: vlak vóór het omzetten van de override-knop nóg één verse resolutie-sweep (kaping kan config-afhankelijk/intermittent zijn). De 194 FQDN-Connected devices bewijzen sowieso correcte resolutie.
+
 **VOLGENDE — de eigenlijke cut-over (runbook RB-2026-UNIFI-MIGRATE, vakantie-window aanbevolen, géén dataplane-impact maar controller-down):**
 - **Fase 0** (nu veilig, niet-destructief): `.unf`-backup downloaden van de OUDE controller (10.10.100.15) → Settings → Control Plane → Backups → Download. Bewaren buiten de oude host.
 - **Fase 3**: vzdump nieuwe VM → oude `systemctl stop unifi` → `.unf` restoren op SRVV-UNIFI-01.
