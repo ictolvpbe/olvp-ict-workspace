@@ -1,9 +1,11 @@
 ---
 name: project-forgejo-status
-description: Forgejo provisioning werf #30 — SRVV-FORGEJO-01 op 10.35.0.11 (VLAN 35 mgmt). MISDIAGNOSE GECORRIGEERD 2026-06-28: het "postgres pq-driver"-issue was nooit postgres — Forgejo crash-loopt op SSH-bind poort 22 (UID 1000, geen CAP_NET_BIND_SERVICE). Postgres-in-podman werkt prima (121 tabellen). Fix: START_SSH_SERVER=false.
+description: Forgejo provisioning werf #30 — SRVV-FORGEJO-01 op 10.35.0.11 (VLAN 35 mgmt). ✅ AFGEWERKT 2026-06-28/29 — operationeel op git.olvp.int (postgres-backed, START_SSH_SERVER=false na SSH-bind-misdiagnose), Caddy 200, admin-account, cert+renewal geverifieerd, MCP (stdio+remote) werkend, alles gecodificeerd in forgejo.yml.
 metadata:
   type: project
 ---
+
+**✅ WERF AFGEWERKT 2026-06-28/29** (door user bevestigd 29 juni). Forgejo draait operationeel op `https://git.olvp.int/` (postgres-backed). Root cause van de maandenlange "postgres-pq-bug" bleek een MISDIAGNOSE — Forgejo crash-loopte op SSH-bind poort 22, niet postgres. Fix `START_SSH_SERVER=false` gecommit (`6dc4bfb`), cert-renewal (`a0d3f1d`) + remote MCP-endpoint (`0cc918c`) gecodificeerd; working tree clean. Details hieronder. Resterend (optioneel, geen blocker): remote-MCP-secrets in vault (`forgejo_mcp_remote_token`/`forgejo_mcp_bearer`) handmatig toevoegen + 2FA op admin-account. Push-mirror GitHub→Forgejo nog op te zetten indien gewenst ([[project-vcs-strategy]]).
 
 **Status 2026-06-28 — root cause gevonden, postgres-mysterie was MISDIAGNOSE**:
 

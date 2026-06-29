@@ -41,7 +41,7 @@
 - [Caddy no-cache op Odoo login-paths](feedback_odoo_caddy_no_cache_login.md) — verplicht om intermittent CSRF + trage F5-login te voorkomen; in Caddyfile-template per site-block
 - [Test vanaf user-VLAN](feedback_test_from_user_vlan.md) — Admin-VLAN 34 testen verbergt firewall-gaps; minstens 1× testen vanaf VLAN 10 (USERS) voor publiek-bereikbare diensten
 - [Ansible vault auto-loading](feedback_ansible_vault_loading.md) — `group_vars/<name>_vault.yml` wordt NIET geladen; gebruik `group_vars/<name>/{vars,vault}.yml` directory-pattern
-- [Forgejo werf-status](project_forgejo_status.md) — SRVV-FORGEJO-01 in opbouw; postgres-issue ook met ACC-01-patroon (pg:15+Secret+NetworkAlias) niet fixbaar; werf gepauzeerd 2026-06-03 — alternatieven: SQLite/Gitea/cloud
+- [Forgejo werf-status](project_forgejo_status.md) — ✅ AFGEWERKT 2026-06-28/29: operationeel op git.olvp.int (postgres-backed), "postgres-bug" was misdiagnose (SSH-bind p22 → START_SSH_SERVER=false); Caddy 200, admin, cert+renewal, MCP stdio+remote, alles gecodificeerd
 - [Werkmethode 2 werven](feedback_working_method_two_werven.md) — subagents persisteren niet; continuïteit via memory + per-repo CLAUDE.md + status-memory + claude --resume; draai per werf vanuit eigen repo-dir
 - [MySchool_addons repo](project_myschool_repo.md) — Odoo-addons repo met 18 modules; docs/-structuur sinds 2026-06-03 op branch Dev-Docs-structure (32 files, analoog platform-handbook); lokaal pad /home/demm/PyCharm/odoo-myschool/extra-addons/
 - [Keycloak LDAPS + postgres-uid gotchas](feedback_keycloak_ldaps_truststore.md) — KC_TRUSTSTORE_PATHS met openssl-gefetcht AD-cert voor LDAPS-handshake; postgres:15 Debian = uid 999 (niet 70 zoals alpine)
