@@ -35,7 +35,8 @@ metadata:
 - Geen reCAPTCHA (Google-dep) → rate-limiting via HAProxy/fail2ban.
 
 ## Status / volgende stap
-- **WACHT OP**: user cloont SRVV-SSPR-01 (Fase 0). Daarna Fase 1→8 met Claude-begeleiding.
+- **▶ MORGEN (2026-06-30) VERDER met SRVV-SSPR-01.** User zet de bouw voort — VM-clone (Fase 0) afgerond of klaar om te starten. Pak Fase 1→8 uit RB-2026-SSPR-DEPLOY op met Claude-begeleiding; begin met manueel/SSH bewijzen vóór codificatie.
+- **WAS WACHT OP**: user cloont SRVV-SSPR-01 (Fase 0). Daarna Fase 1→8 met Claude-begeleiding.
 - Te schrijven tijdens bouw: overlay-playbook `sspr.yml` + templates (`sspr.Caddyfile.j2`, config-template) — codificatie analoog forgejo.yml (eerst manueel/SSH bewijzen, dan codificeren).
 - Open beleidsvragen (schoolleiding): min-lengtes bevestigen, recovery-kanaal, MFA-timing.
 
