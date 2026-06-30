@@ -34,9 +34,17 @@ metadata:
 - Eén `$pwd_min_length` per instance → vloer 12, personeel via policy-tekst naar ≥14.
 - Geen reCAPTCHA (Google-dep) → rate-limiting via HAProxy/fail2ban.
 
+## Oude tool — config geharvest (2026-06-30)
+Oude pw-server = **`srvv-pw001`, 10.20.100.1** (VLAN20 legacy-DMZ, Ubuntu 20.04, **bare-metal** LTB-package op `/usr/share/self-service-password/conf/config.inc.php`, geen container). Tijdelijk `ansible`-account aangemaakt (NOPASSWD) voor read-only harvest → **op decommissie-opruimlijst zetten**. Login werkt via `~/.ssh/ansible_olvp`.
+- **Bevestigd**: `ldaps://srvv-infra002.olvp.int` (LDAPS+FQDN), base `dc=olvp,dc=int`, login-attr `sAMAccountName`, `$ad_mode=true`+`change_expired_password`, `$hash=clear`.
+- **2 verbeteringen overgenomen in runbook**: (1) betere filter `(&(objectClass=user)(sAMAccountName={login})(!(userAccountControl:1.2.840.113556.1.4.803:=2)))` — sluit disabled accounts uit; (2) **UPN-bind** `svc-sspr@olvp.int` i.p.v. volledige DN (overleeft OU-verhuizing). Oude bind = `PWM-proxyuser@olvp.int`.
+- **NIET overgenomen** (juist wat we vervangen): oud `$pwd_min_length=10`+complexity-regels+`use_pwnedpasswords=false`; `$debug=true`; `$use_recaptcha=true` met hardcoded Google-keys cleartext (droppen — gotcha 9).
+- **SMTP-beslissing (user 2026-06-30)**: **Gmail-relay NU** (`smtp.gmail.com:587` TLS, `ict@olvp.be` — hergebruikt uit oude tool, `sspr_smtp_pass`/Podman-secret), **mét geplande toekomstige migratie naar niet-Google/EU-SMTP** (tech-debt). Oude box had `$use_tokens=false` (mailflow nooit af) → nieuwe flow wél `use_tokens=true` + echte `mail_from`. Runbook Fase 6 bijgewerkt.
+
 ## Status / volgende stap
-- **▶ MORGEN (2026-06-30) VERDER met SRVV-SSPR-01.** User zet de bouw voort — VM-clone (Fase 0) afgerond of klaar om te starten. Pak Fase 1→8 uit RB-2026-SSPR-DEPLOY op met Claude-begeleiding; begin met manueel/SSH bewijzen vóór codificatie.
-- **WAS WACHT OP**: user cloont SRVV-SSPR-01 (Fase 0). Daarna Fase 1→8 met Claude-begeleiding.
+- **▶ BEZIG (2026-06-30): bouw SRVV-SSPR-01.** Fase 0 (clone) klaar, oude config geharvest, runbook bijgewerkt, **inventory-groep `sspr_servers` toegevoegd** (top-level, eigen groep, ssh_common_args="").
+- **Fase 0-bevinding**: de clone is een **kále Debian 13-base** — géén Podman/step/`/etc/containers/`/log-hygiene (dus NIET van een volledig golden-image). Geen probleem: **Fase 1 `tier1-baseline.yml` installeert dat allemaal** (standalone playbook, idempotent). Runbook Fase 0/1 aangepast aan deze realiteit + step-ca bootstrap-noot.
+- **▶ VOLGENDE (user draait, vault-pw)**: `ansible-playbook tier1-baseline.yml -e target_limit=srvv-sspr-01 --ask-vault-pass` → daarna `sudo step ca bootstrap` (FP uit KeePassXC). Dan Fase 2 (AD svc-sspr + dsacls) → Fase 3 (container/config intern testen).
 - Te schrijven tijdens bouw: overlay-playbook `sspr.yml` + templates (`sspr.Caddyfile.j2`, config-template) — codificatie analoog forgejo.yml (eerst manueel/SSH bewijzen, dan codificeren).
 - Open beleidsvragen (schoolleiding): min-lengtes bevestigen, recovery-kanaal, MFA-timing.
 
