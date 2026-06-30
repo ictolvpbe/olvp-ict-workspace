@@ -44,7 +44,10 @@ Oude pw-server = **`srvv-pw001`, 10.20.100.1** (VLAN20 legacy-DMZ, Ubuntu 20.04,
 ## Status / volgende stap
 - **▶ BEZIG (2026-06-30): bouw SRVV-SSPR-01.** Fase 0 (clone) klaar, oude config geharvest, runbook bijgewerkt, **inventory-groep `sspr_servers` toegevoegd** (top-level, eigen groep, ssh_common_args="").
 - **Fase 0-bevinding**: de clone is een **kále Debian 13-base** — géén Podman/step/`/etc/containers/`/log-hygiene (dus NIET van een volledig golden-image). Geen probleem: **Fase 1 `tier1-baseline.yml` installeert dat allemaal** (standalone playbook, idempotent). Runbook Fase 0/1 aangepast aan deze realiteit + step-ca bootstrap-noot.
-- **▶ VOLGENDE (user draait, vault-pw)**: `ansible-playbook tier1-baseline.yml -e target_limit=srvv-sspr-01 --ask-vault-pass` → daarna `sudo step ca bootstrap` (FP uit KeePassXC). Dan Fase 2 (AD svc-sspr + dsacls) → Fase 3 (container/config intern testen).
+- **✅ Fase 1 GROEN (2026-06-30)**: baseline gedraaid — Podman 5.4.2, step CLI 0.30.6, step-ca root bootstrapped, log-hygiene (rsyslog-drop + logrotate), Quadlet-dir, Cockpit active.
+- **✅ LDAPS empirisch bewezen vanaf de VM (2026-06-30)**: DNS resolvet `srvv-infra002.olvp.int` → **10.10.0.10 + 10.10.0.11** (round-robin, beide :636 open, zelfde FQDN-cert → DC-failover); firewall VLAN36→636 **stond al open**; cert-SAN = enkel `DNS:SRVV-INFRA002.olvp.int` (FQDN-bind verplicht); issuer = `olvp-SRVV-INFRA002-CA`.
+- **⚠️ Truststore-correctie (runbook bijgewerkt)**: DC stuurt enkel de **leaf** (geen keten) → `openssl x509` pakt niet de CA. Voor `TLS_CACERT` de **CA-cert** apart halen: (a) `certutil -ca.cert` op DC, of (b) self-bootstrap via `ldapsearch` op `cACertificate` met `LDAPTLS_REQCERT=never` (svc-sspr-creds).
+- **▶ VOLGENDE = Fase 2 (AD-beheer / user)**: `svc-sspr` aanmaken (sterk pw → vault `sspr_ldap_bindpw`), `dsacls` reset-delegatie op Personeel- + SO-OU's, **CA-cert exporteren** (`certutil -ca.cert`). Dan Fase 3 (container/config intern testen).
 - Te schrijven tijdens bouw: overlay-playbook `sspr.yml` + templates (`sspr.Caddyfile.j2`, config-template) — codificatie analoog forgejo.yml (eerst manueel/SSH bewijzen, dan codificeren).
 - Open beleidsvragen (schoolleiding): min-lengtes bevestigen, recovery-kanaal, MFA-timing.
 
