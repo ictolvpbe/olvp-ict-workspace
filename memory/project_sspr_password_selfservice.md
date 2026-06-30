@@ -20,14 +20,15 @@ metadata:
 - Governance-index bijgewerkt.
 
 ## Architectuur (uit runbook)
-`DNS pw.olvp.be → .82 (oude gw DNAT) → HAProxy (LE) → Caddy (step-ca) op SRVV-SSPR-01 → LTB-container (127.0.0.1:8084) → AD LDAPS srvv-infra002.olvp.int:636`.
+`DNS pw.olvp.be → .82 (oude gw DNAT) → HAProxy (LE) → Caddy (step-ca) op SRVV-SSPR-01 → LTB-container (127.0.0.1:8084) → AD LDAPS srvv-serv-01.olvp.int:636 (10.33.0.10)`.
+- **AD-bind = direct op SERV-01 (migratie-DC), niet infra002** (beslist 2026-06-30): binden meteen op `srvv-serv-01.olvp.int`/10.33.0.10 zodat de geplande AD-verhuizing géén herbind vereist. Account+dsacls zijn domein-breed → script op SERV-01 draaien. CA key-behoudend (`olvp-SRVV-INFRA002-CA`) → truststore-cert verandert niet. Zie [[project-ad-serv01-migration]].
 - **Service-patroon = Forgejo** (los Quadlet-service + eigen Caddy + overlay-playbook `sspr.yml` nog te schrijven), NIET het Odoo-instances-patroon.
 - **HAProxy = `be_keycloak`-patroon**: handmatig toegevoegde niet-Odoo publieke backend (ACL `is_sspr` + `be_sspr` server :443 ssl verify required sni req.hdr(host)). Niet instances.yml-driven.
 - AD: dedicated least-privilege bind-account `svc-sspr` + `dsacls` reset-delegatie (`CA;Reset Password;user` + `WP;pwdLastSet;user`) op personeel+SO-OU's (analoog [[project-ad-member-delegation]]).
 
 ## Belangrijkste gotchas (in runbook)
 - LDAPS op **FQDN** (cert-SAN-match, [[feedback-keycloak-ldaps-truststore]]); AD-CA-cert in container-truststore.
-- AD eist LDAPS voor pw-set; firewall VLAN36→VLAN10:636 nieuw nodig.
+- AD eist LDAPS voor pw-set; **firewall VLAN36→10.33.0.10:636 (VLAN33/SERV-01) nieuw nodig — bevestigd DICHT 2026-06-30**, openen vóór Fase 3. (VLAN36→VLAN10:636 stond al open maar gebruiken we niet.)
 - DNS `.82` niet `.84` ([[project-gateway-cutover]]); `pw.olvp.be` bestaat al → cutover = laatste stap, oude tool tot dan laten draaien.
 - `default_sni pw.olvp.be` in Caddy ([[feedback-caddy-default-sni-for-haproxy-check]]); LE eerste `certonly` → deploy-hook handmatig.
 - AD verhuist later naar SRVV-SERV-01 ([[project-ad-serv01-migration]]) → daarom op FQDN binden.
@@ -47,7 +48,8 @@ Oude pw-server = **`srvv-pw001`, 10.20.100.1** (VLAN20 legacy-DMZ, Ubuntu 20.04,
 - **✅ Fase 1 GROEN (2026-06-30)**: baseline gedraaid — Podman 5.4.2, step CLI 0.30.6, step-ca root bootstrapped, log-hygiene (rsyslog-drop + logrotate), Quadlet-dir, Cockpit active.
 - **✅ LDAPS empirisch bewezen vanaf de VM (2026-06-30)**: DNS resolvet `srvv-infra002.olvp.int` → **10.10.0.10 + 10.10.0.11** (round-robin, beide :636 open, zelfde FQDN-cert → DC-failover); firewall VLAN36→636 **stond al open**; cert-SAN = enkel `DNS:SRVV-INFRA002.olvp.int` (FQDN-bind verplicht); issuer = `olvp-SRVV-INFRA002-CA`.
 - **⚠️ Truststore-correctie (runbook bijgewerkt)**: DC stuurt enkel de **leaf** (geen keten) → `openssl x509` pakt niet de CA. Voor `TLS_CACERT` de **CA-cert** apart halen: (a) `certutil -ca.cert` op DC, of (b) self-bootstrap via `ldapsearch` op `cACertificate` met `LDAPTLS_REQCERT=never` (svc-sspr-creds).
-- **▶ VOLGENDE = Fase 2 (AD-beheer / user)**: `svc-sspr` aanmaken (sterk pw → vault `sspr_ldap_bindpw`), `dsacls` reset-delegatie op Personeel- + SO-OU's, **CA-cert exporteren** (`certutil -ca.cert`). Dan Fase 3 (container/config intern testen).
+- **▶ BEZIG = Fase 2 (AD-beheer / user, op SERV-01)**: PowerShell-script geleverd (2026-06-30) → `New-ADUser svc-sspr` (UPN, PasswordNeverExpires + CannotChangePassword + AccountNotDelegated) + `dsacls` reset-delegatie per OU (`/I:S … ;user`). User vult de OU-DN's in (Personeel/SO/ServiceAccounts) via `Get-ADOrganizationalUnit`. Daarna: pw → KeePassXC (later vault `sspr_ldap_bindpw`) + `certutil -ca.cert` voor truststore.
+- **⚠️ BLOKKEERT Fase 3**: firewall VLAN36→10.33.0.10:636 openen (nu dicht). Dan Fase 3 (container/config intern testen).
 - Te schrijven tijdens bouw: overlay-playbook `sspr.yml` + templates (`sspr.Caddyfile.j2`, config-template) — codificatie analoog forgejo.yml (eerst manueel/SSH bewijzen, dan codificeren).
 - Open beleidsvragen (schoolleiding): min-lengtes bevestigen, recovery-kanaal, MFA-timing.
 
