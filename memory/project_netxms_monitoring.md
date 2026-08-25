@@ -48,6 +48,13 @@ VM was al geprovisioneerd (Tier-1 clone, `ansible`-account + canonical key zaten
 
 **Eindstand 2026-08-25**: alle 5 containers up (`netxms-db` healthy, `netxms-server`, `netxms-web`, `netxms-mgmt-agent`, `caddy`), `agent` resolvet in `netxms-net` (10.89.0.8) dus `ManagementAgentAddress` werkt, en de HTTPS-check vanaf de VM geeft 302 met geldige step-ca TLS.
 
+## Migratie oude server (beslist 2026-08-25)
+Oude server = **`10.10.100.2`** — web-UI `http://10.10.100.2:8080/nxmc` (Tomcat 10 op Debian 13, agents 5.1.3). Poort 4701 is van buiten dicht; 22/4700/8080 open.
+**Beslissing user: alleen de CONFIGURATIE overzetten** (templates, drempels, EPP-regels, scripts), géén DB-migratie. Pad = console **Export Configuration** (view `config.export`, Configuration-perspectief) op de oude server → **Import Configuration** (`config.import`) op de nieuwe. Vastgelegd als Fase 8 in het runbook; decommissie schuift op naar Fase 9.
+- **Geverifieerd in de bron**: `ImportConfigFromContent` (`src/server/core/import.cpp`, release-6.2.3) detecteert het formaat zelf en heeft een expliciet legacy-XML-pad → een export uit 5.1.x importeert gewoon in 6.2.3 (6.2.3 exporteert zelf JSON).
+- **Komt NIET mee**: nodes/objectboom, SNMP-credentials, gebruikers, historische meetdata + alarm-historiek, per-node DCI-aanpassingen. Historiek zou een volledige `nxdbmgr export`/`import`/`upgrade` vergen, wat de hele DB (incl. admin-account) vervangt.
+- **Timing**: importeren vóór de nieuwe server ingericht wordt.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
