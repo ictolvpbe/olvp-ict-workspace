@@ -65,6 +65,25 @@ Oude server = **`10.10.100.2`** — web-UI `http://10.10.100.2:8080/nxmc` (Tomca
 - **Komt NIET mee**: nodes/objectboom, SNMP-credentials, gebruikers, historische meetdata + alarm-historiek, per-node DCI-aanpassingen. Historiek zou een volledige `nxdbmgr export`/`import`/`upgrade` vergen, wat de hele DB (incl. admin-account) vervangt.
 - **Timing**: importeren vóór de nieuwe server ingericht wordt.
 
+## Observability-stack erbij (2026-08-25)
+Beslissing user: **volledige stack** Grafana + Prometheus + Loki + log-agent op dezelfde VM, en de config van de oude Grafana-server **als code** overnemen (geen `grafana.db`-kopie).
+
+**Oude server = `10.10.100.1`** (Debian 13). Read-only geïnventariseerd via de API's, geen SSH nodig: Grafana **13.0.1** (draait), Prometheus **2.31.1** (build uit nov 2021), node_exporter + windows_exporter + snmp_exporter (localhost:9116) + unifipoller (localhost:9130), Alertmanager geconfigureerd met **lege targets** (dus geen alerting), **geen Loki**, promtail draait op 9080 met **lege `client.url`** → verstuurt nergens naartoe. Van de **27 scrape-targets stonden er 18 down**.
+
+**Promtail is EOL sinds 2026-03-02** (upstream: "All future feature development will occur in Grafana Alloy") → **Grafana Alloy v1.19.0** i.p.v. promtail.
+
+**Geleverd** (commit `d27f0de` + `1a656b4`): `observability.yml` (eigen podman-netwerk `obs-net`, Quadlets voor grafana/prometheus/loki/alloy/node-exporter/snmp-exporter/unpoller), templates voor alle configs, `vars/monitoring-targets.yml` als SoT met werkende én dode targets gescheiden, runbook **RB-2026-OBS-DEPLOY**, `grafana.md` bijgewerkt.
+
+**Versies gepind**: grafana-oss 13.0.2, prometheus v3.14.0, loki 3.7.6, alloy v1.19.0, node-exporter v1.12.1, snmp-exporter v0.30.1, unpoller v2.7.1.
+
+**Container-uids uitgelezen uit de image-config** (na het postgres-incident geen gok meer): grafana **472**, prometheus **65534**, loki **10001**, alloy/snmp-exporter/unpoller root. Anders dan postgres chownen deze images hun datadir NIET zelf → eigendom hier wél expliciet zetten en laten staan.
+
+**Caddy gesplitst**: hoofd-`Caddyfile` met globale opties + `import /etc/caddy/conf.d/*.caddy`, per dienst een snippet (`caddy.netxms.j2`, `caddy.grafana.j2`). Zonder die splitsing overschrijven `netxms.yml` en `observability.yml` elkaars Caddyfile. **`netxms.yml` moet daarom opnieuw draaien** na `observability.yml`.
+
+**Loki bewust niet gepubliceerd** (geen authenticatie) — agents op andere hosts krijgen later een Caddy-vhost met TLS; dat is meteen de basis voor SEC-3.
+
+**Openstaand**: vault-keys `grafana_admin_password` (+ optioneel `unifi_controller_*`), step-ca cert voor `grafana.olvp.int`, DNS-record, en een **Grafana-service-account-token op 10.10.100.1** om de dashboards te exporteren.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
