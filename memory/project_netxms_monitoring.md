@@ -33,12 +33,26 @@ Images: `ghcr.io/netxms/{server,agent,web}:6.2.3` (officiële `netxms/docker`-re
 - **Draai `netxms.yml` vanaf het werkstation, niet via de bastion**: jump-01 → 10.35.0.20 is intra-VLAN-35 en wordt door per-VLAN-isolatie geblokkeerd (zelfde als SRVV-UNIFI-01) → `ansible_ssh_common_args: ""` in de inventory.
 - **Upgrade-volgorde**: DB-dump → `nxdbmgr check` (server gestopt) → versie bumpen → playbook → zo nodig `nxdbmgr upgrade` → agents. Image-tag terugrollen helpt niet meer na een schema-migratie; de dump is dan het enige rollback-pad.
 
-## Status / volgende stap
-1. **VM `SRVV-MONITORING-01` provisionen** (Tier-1 clone, 4 vCPU / 8 GB / 200 GB, VLAN 35, 10.35.0.20) + AD-DNS `netxms`/`monitoring` in `olvp.int`.
-2. Firewall: VLAN 34 → .20 (22/443/4701/9090), .20 → agent-hosts :4700, netwerkdevices :161/udp, egress naar `ghcr.io` + `packages.netxms.org` + step-ca.
-3. `tier1-baseline.yml` → vault-key `netxms_db_password` → eerste step-ca cert (provisioner-pw) → `netxms.yml` → eerste login → `netxms-agent.yml`.
-4. Daarna: SNMP op UniFi-devices, alert-routes (e-mail eerst), oude NetXMS inventariseren + uitfaseren.
-5. Branches `netxms-fase1` in beide repos mergen na review.
+## Uitrol 2026-08-25 — server DRAAIT
+VM was al geprovisioneerd (Tier-1 clone, `ansible`-account + canonical key zaten er al; hostname stond op `SRVV-MONITOR-01` en is door de user naar `SRVV-MONITORING-01` gezet). Fase 1 t/m 5 gelopen door de user.
+- ✅ **Stack live**: `netxms-db` (healthy), `netxms-server` ("NetXMS Server started", init 3,3 s), `netxms-web`, `caddy`. Poorten 443 / 4701 / 4703 / 127.0.0.1:8080 luisteren. Web-UI geeft **302 met geldige step-ca TLS** op `netxms.olvp.int` én `monitoring.olvp.int`.
+- ✅ Cert `CN=netxms.olvp.int`, SANs netxms + monitoring, issuer OLVP Internal CA Intermediate.
+- ✅ DB geïnitialiseerd; gegenereerd admin-wachtwoord staat in `/root/netxms-dbinit-output.txt` (0600) → **over te zetten naar KeePassXC `netxms-admin` en dan wissen**.
+- ⚠️ **DNS `netxms.olvp.int` ontbreekt nog** (alleen `srvv-monitoring-01` + `monitoring` bestaan) — A-record toevoegen.
+- 📌 Clone-realiteit: `/opt` = 62 G (daar staat `/opt/netxms`), `/var` = 12 G, vda 200 G waarvan ~100 G ongepartitioneerd. Log-hygiene + step-ca bootstrap ontbraken en zijn via Fase 1/2 rechtgezet.
+
+### Twee fouten die pas bij het echte draaien bovenkwamen (beide gefixt, commit `e0a9f70`)
+1. **Unit-naamconflict**: de in-stack agent-Quadlet heette `netxms-agent` — exact de service-naam van het Debian-agentpakket, dat op deze VM óók draait. De Quadlet schaduwde de deb-unit (generator wint van `/lib`), systemd zag het lopende `nxagentd`-proces als active en maakte de container **nooit** aan → `agent` niet resolvebaar in `netxms-net`, `ManagementAgentAddress` stil kapot terwijl de stack gezond oogt. Unit heet nu **`netxms-mgmt-agent`**; de playbook ruimt de oude Quadlet-file op.
+2. **Caddy 403 op de eigen verify**: de HTTPS-check draait óp de VM en komt binnen als `127.0.0.1`, wat niet in `internal_networks` zit. Loopback staat nu expliciet in de `@intern`-matcher.
+
+## Volgende stap
+1. **`netxms.yml` opnieuw draaien** (vault) → mgmt-agent-container komt op, verify loopt groen. Image is al gepulld.
+2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
+3. `netxms-agent.yml` uitrollen (agents rapporteren aan .20 én legacy 10.10.100.2).
+4. SNMP op UniFi-devices, alert-routes (e-mail eerst).
+5. Oude server `10.10.100.2` inventariseren + uitfaseren; daarna `netxms_legacy_server` leegmaken.
+6. Firewall-regels bevestigen: VLAN 34 → .20 (22/443/4701/9090), .20 → agent-hosts :4700 + devices :161/udp.
+7. Branches `netxms-fase1` in beide repos mergen na review.
 
 ## Gerelateerd
 [[project-forgejo-status]] (service-patroon), [[project-infrastructure-params]] (VLAN 35 / IP-plan), [[project-internal-pki-coverage]] (step-ca cert + renewal), [[project-podman-log-hygiene]] (log-hygiene op dezelfde VM), [[project-firewall-strategy]] (nieuwe regels), [[feedback-test-from-user-vlan]] (verificatie vanaf het juiste VLAN).
