@@ -48,6 +48,16 @@ VM was al geprovisioneerd (Tier-1 clone, `ansible`-account + canonical key zaten
 
 **Eindstand 2026-08-25**: alle 5 containers up (`netxms-db` healthy, `netxms-server`, `netxms-web`, `netxms-mgmt-agent`, `caddy`), `agent` resolvet in `netxms-net` (10.89.0.8) dus `ManagementAgentAddress` werkt, en de HTTPS-check vanaf de VM geeft 302 met geldige step-ca TLS.
 
+### Incident 2026-08-25 — playbook sloopte de draaiende database (fix `265b724`)
+Symptoom bij de user: browser gaf `ERR_QUIC_PROTOCOL_ERROR`, site onbereikbaar. Werkelijke keten, van achter naar voren:
+1. De dirs-taak zette `/opt/netxms/db` bij élke run terug naar `root:root 0700`, terwijl postgres in de container als **uid 999** draait (host toont die uid als `systemd-coredump` — puur toeval in de uid-nummering).
+2. De draaiende postgres verloor daardoor midden in bedrijf toegang: `FATAL: could not open file "global/pg_filenode.map": Permission denied` → `PANIC: could not open file "global/pg_control"` → WAL-writer `signal 6` → general protection fault in libc → exit 139.
+3. Onreine shutdown → **netxmsd-lock bleef in de DB staan** (`Database is already locked by another NetXMS server instance, IP 10.89.0.5`). De nieuwe container heeft een ander IP → weigert te starten, exit 3, 8 herstarts, opgegeven.
+4. `Requires=` sleurde web én caddy mee → site volledig dood.
+
+**Herstel**: `nxdbmgr -f unlock` + `systemctl reset-failed` + services starten. **Drie fixes in de playbook**: PGDATA krijgt geen owner/mode meer, stale lock wordt vóór het starten opgeruimd (met guard tegen unlocken bij een draaiende server), en `Requires=` werd `Wants=` tussen web→server en caddy→web zodat een gecrashte netxmsd hoogstens een 502 geeft i.p.v. een dode site.
+**Les**: een idempotente `file:`-taak met `owner`/`mode` op een datadir van een container die zelf chownt = tijdbom die pas bij de tweede run afgaat.
+
 ## Migratie oude server (beslist 2026-08-25)
 Oude server = **`10.10.100.2`** — web-UI `http://10.10.100.2:8080/nxmc` (Tomcat 10 op Debian 13, agents 5.1.3). Poort 4701 is van buiten dicht; 22/4700/8080 open.
 **Beslissing user: alleen de CONFIGURATIE overzetten** (templates, drempels, EPP-regels, scripts), géén DB-migratie. Pad = console **Export Configuration** (view `config.export`, Configuration-perspectief) op de oude server → **Import Configuration** (`config.import`) op de nieuwe. Vastgelegd als Fase 8 in het runbook; decommissie schuift op naar Fase 9.
