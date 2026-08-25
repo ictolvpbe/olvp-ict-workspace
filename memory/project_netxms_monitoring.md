@@ -43,10 +43,13 @@ VM was al geprovisioneerd (Tier-1 clone, `ansible`-account + canonical key zaten
 
 ### Twee fouten die pas bij het echte draaien bovenkwamen (beide gefixt, commit `e0a9f70`)
 1. **Unit-naamconflict**: de in-stack agent-Quadlet heette `netxms-agent` — exact de service-naam van het Debian-agentpakket, dat op deze VM óók draait. De Quadlet schaduwde de deb-unit (generator wint van `/lib`), systemd zag het lopende `nxagentd`-proces als active en maakte de container **nooit** aan → `agent` niet resolvebaar in `netxms-net`, `ManagementAgentAddress` stil kapot terwijl de stack gezond oogt. Unit heet nu **`netxms-mgmt-agent`**; de playbook ruimt de oude Quadlet-file op.
-2. **Caddy 403 op de eigen verify**: de HTTPS-check draait óp de VM en komt binnen als `127.0.0.1`, wat niet in `internal_networks` zit. Loopback staat nu expliciet in de `@intern`-matcher.
+2. **Verificatie draaide tegen de oude config**: de restart-handler vuurt pas aan het einde van de play, dus de HTTPS-check testte een Caddy die de nieuwe Caddyfile nog niet geladen had → tweede valse 403. `meta: flush_handlers` staat nu vóór het verify-blok.
+3. **Caddy 403 op de eigen verify**: de HTTPS-check draait óp de VM en komt binnen als `127.0.0.1`, wat niet in `internal_networks` zit. Loopback staat nu expliciet in de `@intern`-matcher.
+
+**Eindstand 2026-08-25**: alle 5 containers up (`netxms-db` healthy, `netxms-server`, `netxms-web`, `netxms-mgmt-agent`, `caddy`), `agent` resolvet in `netxms-net` (10.89.0.8) dus `ManagementAgentAddress` werkt, en de HTTPS-check vanaf de VM geeft 302 met geldige step-ca TLS.
 
 ## Volgende stap
-1. **`netxms.yml` opnieuw draaien** (vault) → mgmt-agent-container komt op, verify loopt groen. Image is al gepulld.
+1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
 3. `netxms-agent.yml` uitrollen (agents rapporteren aan .20 én legacy 10.10.100.2).
 4. SNMP op UniFi-devices, alert-routes (e-mail eerst).
