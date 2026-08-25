@@ -84,6 +84,14 @@ Beslissing user: **volledige stack** Grafana + Prometheus + Loki + log-agent op 
 
 **Openstaand**: vault-keys `grafana_admin_password` (+ optioneel `unifi_controller_*`), step-ca cert voor `grafana.olvp.int`, DNS-record, en een **Grafana-service-account-token op 10.10.100.1** om de dashboards te exporteren.
 
+### Observability-uitrol 2026-08-25 — stack draait, 10 van 11 targets up
+- **Poortconflict**: Prometheus kon niet starten, `bind: address already in use` op 9090 — **Cockpit** houdt die poort bezet via socket-activation, en Cockpit zit in de Tier-1 baseline → geldt op élke OLVP-VM. Host-kant nu **9091**, container intern 9090.
+- **SNMP-community**: exporter viel terug op `public` → time-outs. Opgelost met een **tweede `--config.file`** (`olvp-auth.yml`, auth-naam `olvp_v2`) zodat de ~2 MB meegeleverde module-definities intact blijft; Prometheus geeft `auth: [olvp_v2]` mee als param. Vault-key **`snmp_community`** nodig. Live bevestigd: 86 metrics van 10.10.110.5.
+- **unpoller draait maar krijgt geen data**: controller-login faalt (`user: zeus … status 400 authentication failed`) — `zeus` is het device-SSH-account, geen controller-admin. **Let op de meetval**: Prometheus toont de target als UP omdat het `/metrics`-endpoint antwoordt; controleer met `count({__name__=~"unpoller_.+"})`.
+- **`10.20.100.1:9100` onbereikbaar** vanaf VLAN 35 (geen ICMP/22/9100). Dat is **srvv-pw001**, de oude SSPR-server in het legacy-DMZ die op de decommissie-lijst staat → bewust naar de down-lijst i.p.v. een firewall-gat naar VLAN 20.
+- **Wachtwoord-validatie**: de fail-melding zei "ontbreekt" terwijl de check ook op lengte (≥12, conform eigen password-policy) faalt; melding zegt nu welke van de twee.
+- Grafana **13.0.2** healthy, Loki + Alloy draaien, alle 9 units active.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
