@@ -119,6 +119,15 @@ Van 8 naar **5 dashboards**, alle in map `OLVP`: Node Exporter Full, Windows Exp
 3. **Bind-mount van één bestand overleeft vervanging niet**: Ansible (en `install`) schrijven naar een tijdelijk bestand en verplaatsen dat → nieuwe inode, container houdt de oude. `POST /-/reload` laadt dan de oude inhoud opnieuw. **Config-wijziging vereist container-restart, geen reload** — de playbook doet dat al via de handler.
 **Stand: 11 van 11 Prometheus-targets up.**
 
+### Syslog-ingest 2026-08-26 (beslissing user: beide kanten + 30 dagen in NetXMS-DB)
+`apparaat --514--> rsyslog --+--> 127.0.0.1:1514/udp netxmsd  +--> /var/log/remote/<host>.log --> Alloy --> Loki`. rsyslog is de voordeur want maar één proces kan 514 binden. Dashboard **OLVP Syslog** toegevoegd.
+- **`Syslog.EnableListener` staat standaard op 0** — de ingebouwde syslog-server van NetXMS was volledig uit. Instellingen leven in de **database** (niet netxmsd.conf), gezet via `nxdbmgr set`: NodeMatchingPolicy=**1** (hostnaam eerst; bij een relay is het bron-IP dat van rsyslog), AllowUnknownSources=1, ParseUnknownSourceMessages=1, EnableStorage=1, RetentionTime=**30**.
+- **Doorsturen MOET in RFC5424** (`RSYSLOG_SyslogProtocol23Format`). netxmsd checkt na de PRI op `1 ` en probeert anders BSD-formaat; `RSYSLOG_ForwardFormat` levert geen van beide → hele bericht als tekst, `msg_tag=2026`, `hostname=10.89.0.1` (podman-gateway). Na de fix: `hostname=WAP-T001-01`.
+- **`nxdbmgr get` geeft `naam=waarde` terug**, niet enkel de waarde → mijn idempotentiecheck meldde elke run een wijziging en herstartte netxmsd. Nu `have=${have#*=}`.
+- **De AP's stuurden al syslog naar deze VM** (niet geconfigureerd door ons). Gemeten volume: **3158 msg/min = 4,5 M/dag, 762 MB/dag**. Samenstelling: 65% FWLOG (wifi-firmware-debug), 19% overige kernel, 11% stamgr. **User koos filteren**: rsyslog-filter vóór de vertakking, afgebakend op `re_match($programname, "^[0-9a-fA-F]{12},")` zodat kernelmeldingen van Linux-servers ongemoeid blijven. Resultaat: **625 msg/min**, 0 FWLOG/kernel in 783 nieuwe rijen, stamgr komt door.
+- Golden-image-vondst: `/etc/rsyslog.d/to-servers.conf` stuurt de logs van **élke** VM naar de oude NetXMS 10.10.100.2 — fleet-breed te herzien bij de decommissie.
+- Meet filtereffect via `max(msg_id)`-markeerpunt, niet via een tijdvenster: rijen van vóór de rsyslog-herstart vallen anders binnen je venster.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
