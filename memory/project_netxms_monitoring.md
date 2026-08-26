@@ -150,9 +150,48 @@ Runbook **RB-2026-NETXMS-KIOSK** (`hosting/operations/deploy-netxms-kiosk.md`). 
 - **Gotcha's**: Chromium gebruikt een **eigen NSS-database** en negeert de systeem-truststore → step-ca root apart toevoegen met `certutil`, anders blijft het scherm op een certificaatwaarschuwing hangen. `auto` werkt **één keer per sessie** → mislukte aanmelding laat een inlogvenster achter; vandaar `Restart=always` + nachtelijke herstart via cron. Geen snap-browser (sandbox hindert autostart + certbeheer).
 - Kiosk-account krijgt **geen** recht om alarmen te bevestigen/sluiten — voorkomt dat een voorbijganger iets wegklikt.
 
+### Objectboom + autobind 2026-08-26 — 167 van 181 nodes toegewezen
+Discovery vond 181 nodes, maar die stonden enkel onder `Entire Network` (Network-perspectief). **Discovery bindt niet aan containers** — Infrastructure blijft leeg op de management-node na, die netxmsd zelf aan de Service Root hangt. Geen instelling, twee bomen naast elkaar.
+
+Opgelost met **één identiek autobind-script in alle containers**, gestuurd door het **Alias**-veld van de container (`SW-`, `WAP-`, `SRV-`, `SRVV-`, `CAM-`, `GW-`, `PR-`, `TEL-`, `TC-`):
+```
+prefix = $container->alias;
+if ((prefix == null) || (prefix == "")) return false;
+pattern = prefix .. "*";
+return $node->name ilike pattern;
+```
+Ouder-containers krijgen geen alias; de guard houdt ze leeg. Resultaat: 111 `WAP-`, 53 `SW-`, 1 elk voor `CAM-`/`SRV-`/`SRVV-`. De 14 overige nodes dragen hun fabrieksnaam (`UBNT`, `HT8XX`, `BRNB…`, vijf `10.10.102.x`) en hebben een hernoeming of een filter op `snmpOID`/`driver` nodig.
+
+**NXSL-valkuilen, alle vier stil falend** (geverifieerd met `nxscript` in de server-container):
+- Een mee gekopieerd taallabel `nxsl` als eerste regel → `Error in line 2: syntax error`, container blijft leeg, géén melding in de UI. Zie [[feedback-code-fence-label-in-ui-fields]].
+- **Concatenatie is `..`**, `.` is attribuut-toegang → `Error 15: Unknown object's attribute`.
+- `ilike` bindt sterker dan `..` → patroon eerst in een eigen variabele zetten.
+- Lege alias: `null .. "*"` wordt patroon `*` en matcht **alles** → guard verplicht.
+- Verder: `ilike` is hoofdletterongevoelig (vangt `sw-pparking`), onbekende variabele = `null` zonder fout, `trim()`/`length()` deprecated in 6.2.
+
+**Prefix altijd mét streepje**: `SRV*` matcht ook `SRVV-MONITORING-01`, `SRV-*` niet.
+
+**Forceren**: `Objects.AutobindPollingInterval` 3600 en `Objects.AutobindOnConfigurationPoll` 1 → binnen het uur vanzelf. Per node: Poll → Autobind (toetst die node tegen *alle* containers). Massaal: interval tijdelijk op 60, daarna terugzetten. `Objects.AccessPoints.ContainerAutoBind` staat op 0 — telt zodra de UniFi-controller AP's als AccessPoint-objecten aanmaakt i.p.v. Nodes.
+
+**DB-verificatie**: `auto_bind_target.flags` 1=bind, 2=unbind, 3=beide, 0=vinkje uit (script staat er, draait niet). In `container_members` is **`container_id` de ouder en `object_id` het lid** — omgekeerd tellen geeft het aantal ouders.
+
+Vastgelegd in `platform-handbook/management-tools/netxms.md` (hoofdstuk "Objectboom: containers en autobind" + 5 troubleshooting-rijen + Learnings). Containers zitten **niet** in Export Configuration en niet in Ansible — die doc is het enige vangnet.
+
+### Kiosk-scherm: NetXMS-kant AF 2026-08-26
+Dashboard **`OLVP`** (object-id 7613) met alarm viewer + SNMP-trap monitor + syslog monitor werkt volledig in kiosk-modus. URL: `https://monitoring.olvp.int/nxmc-light.app?auto&login=kiosk-tv&password=…&dashboard=OLVP&kiosk-mode=true` (**`netxms.olvp.int` staat nog steeds niet in DNS**; cert dekt beide namen).
+**Drie rechten-gotcha's, alle drie geverifieerd in de broncode:**
+1. **Objectrecht op het dashboard** ontbrak → web-UI meldde `Cannot find dashboard object with name or ID`. Alle root-objecten geven standaard enkel toegang aan `Admins` en een nieuw dashboard erft dat.
+2. **In kiosk-modus geeft een niet-gevonden dashboard `Invalid resource ID` in de browser** — er wordt géén hoofdvenster gebouwd, dus zonder dashboard blijft er geen venster over en struikelt RAP. De echte oorzaak staat in `journalctl -u netxms-web`.
+3. **Alarmen vragen ZOWEL `VIEW_ALL_ALARMS` (systeem) als `OBJECT_ACCESS_READ_ALARMS` (op het bronobject)** — `SendAlarmsToClient` in `alarm.cpp` eist beide. Alleen het systeemrecht → lege alarmlijst terwijl de DB er 466 bevat. Syslog- en trap-panelen hangen daarentegen puur aan systeemrechten (`VIEW_SYSLOG`, `VIEW_TRAP_LOG`), serverzijde afgedwongen in `onSyslogMessage`.
+**SNMP-traps**: `snmp_trap_log` was leeg omdat de container **poort 162 niet publiceerde**. Nu `PublishPort=162:162/udp` + `SNMP.Traps.LogAll=1` + retentie 30 dagen. Let op: UniFi-apparaten pollen wel via SNMP maar sturen doorgaans zelf géén traps — dat paneel kan dus leeg blijven zonder dat er iets stuk is.
+
+### ▶ MORGEN 2026-08-27 — eerste taak: TV-toestel upgraden
+Het toestel aan de TV draait **Debian 11**. Uit reguliere ondersteuning sinds **2024-08-14**; Debian 12 sinds **2026-07-11**. Alleen 13 loopt door (tot 2028-08-09). Debian laat geen sprongen toe → **11 → 12 → 13**, release na release. Pas dáárna de kiosk bouwen volgens **RB-2026-NETXMS-KIOSK** (runbook staat inmiddels op Debian, niet Ubuntu: `gdm3` leest `/etc/gdm3/daemon.conf`, en Chromium is een gewone `.deb`).
+Het bestaande bash-script op het toestel wordt vervangen door het script uit stap B7 van het runbook (user-keuze).
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
-2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
+2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
 3. `netxms-agent.yml` uitrollen (agents rapporteren aan .20 én legacy 10.10.100.2).
 4. SNMP op UniFi-devices, alert-routes (e-mail eerst).
 5. Oude server `10.10.100.2` inventariseren + uitfaseren; daarna `netxms_legacy_server` leegmaken.
