@@ -92,6 +92,17 @@ Beslissing user: **volledige stack** Grafana + Prometheus + Loki + log-agent op 
 - **Wachtwoord-validatie**: de fail-melding zei "ontbreekt" terwijl de check ook op lengte (≥12, conform eigen password-policy) faalt; melding zegt nu welke van de twee.
 - Grafana **13.0.2** healthy, Loki + Alloy draaien, alle 9 units active.
 
+### 2026-08-26 — lock-cascade door mijn eigen restart-handler (fix `1dd8300`)
+Symptoom: `netxms.yml` bleef hangen op "Wachten tot netxmsd de client-poort opent", web-UI gaf **"Cannot resolve host name 'server'"**. Oorzaak: de restart-handlers die ik 25/08 aan alle Quadlets toevoegde vuren **aan het einde van de play** — dus ná de unlock-guard. Die guard zag de nog draaiende oude container, sloeg de unlock over, en de herstart erna botste op de achtergebleven lock → exit 3 → `server` niet resolvebaar in `netxms-net` → web-UI stuk.
+**Les**: handlers zijn het verkeerde gereedschap wanneer de volgorde ertoe doet. netxmsd wordt nu **expliciet gestopt** zodra unit/config/db-unit wijzigt, dan pas guard → unlock → start; de DB-herstart zit in datzelfde blok met de server gegarandeerd gestopt.
+**Tweede oorzaak**: `StopTimeout` ontbrak. Podman kapt na 10 s af — te kort voor netxmsd (geeft lock alleen bij nette shutdown vrij) én voor postgres (verklaart ook de crash-recovery van 25/08). Beide units nu `StopTimeout=60` (< systemd `TimeoutStopSec` 90).
+
+### Stand 2026-08-26
+- NetXMS-stack draait, web-UI OK.
+- **Observability: 10 van 10 Prometheus-targets up** na het zetten van `snmp_community` in de vault.
+- **unpoller v2.7.1 → v4.0.1**: mijn versiecheck las maar één pagina ghcr-tags en gaf v2.7.1 als hoogste terwijl v4.0.1 actueel is. v2.x kan de JSON van een recente controller niet parsen (`cannot unmarshal number … into int64` op `wired-tx_bytes-r`) → nul metrics ondanks geslaagde login. Met v4.0.1: **355 clients, 174 AP's, 62 switches, 58.856 metrics, Err: 0**. Overige pins nagekeken met volledige paginering en correct bevonden.
+- **Quadlet-wijziging herstart nu de container** (12 units, beide playbooks); podman-secrets roteren alleen met `-e rotate_secrets=true`; unpoller-unit op 0600 want bevat het controller-wachtwoord in klare tekst.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
