@@ -103,6 +103,14 @@ Symptoom: `netxms.yml` bleef hangen op "Wachten tot netxmsd de client-poort open
 - **unpoller v2.7.1 → v4.0.1**: mijn versiecheck las maar één pagina ghcr-tags en gaf v2.7.1 als hoogste terwijl v4.0.1 actueel is. v2.x kan de JSON van een recente controller niet parsen (`cannot unmarshal number … into int64` op `wired-tx_bytes-r`) → nul metrics ondanks geslaagde login. Met v4.0.1: **355 clients, 174 AP's, 62 switches, 58.856 metrics, Err: 0**. Overige pins nagekeken met volledige paginering en correct bevonden.
 - **Quadlet-wijziging herstart nu de container** (12 units, beide playbooks); podman-secrets roteren alleen met `-e rotate_secrets=true`; unpoller-unit op 0600 want bevat het controller-wachtwoord in klare tekst.
 
+### Dashboards overgezet 2026-08-26
+8 dashboards geëxporteerd van de oude Grafana met een **Viewer**-service-account-token (token in een bestand, niet in de chat). Datasource-mapping opgehaald bij de bron via **`/api/frontend/settings`** — dat endpoint werkt met een Viewer-token, terwijl `/api/datasources` admin vereist. Oude uid's: Prometheus `yLxUejo7k`, Loki `XkVUAqo7k` (+ een ongebruikte InfluxDB `OhXvxIE7z`). Omgezet: **418 → `olvp-prometheus`, 12 → `olvp-loki`**; 4 dangling verwijzingen op row-panelen in windows-exporter-2024 meegenomen.
+- **Grafana 13 slaat dashboards op in unified storage** (`resource`-tabel), niet meer in de `dashboard`-tabel — die is leeg. Controleren dus via `select resource,name,folder from resource`.
+- **`foldersFromFilesStructure: true` negeert de `folder`-instelling** → alles landde in General. Nu `false` + `folder: OLVP`.
+- **Grafana slaat ongewijzigde bestanden over** op basis van `grafana.app/sourceChecksum` in de resource-annotaties. Een gewijzigde provider-config alleen dwingt dus geen herimport af; bestanden kort weghalen en terugzetten wel.
+- Alle 8 zijn **community-dashboards**, geen eigen OLVP-werk → er ging niets verloren door géén `grafana.db` te kopiëren.
+- Kandidaten om op te ruimen: "Loki stack monitoring (Promtail, Loki)" gaat over Promtail dat we door Alloy vervingen; twee Windows-Exporter-dashboards en twee node-exporter-dashboards overlappen; "Loki - Syslog AIO" verwacht syslog-labels terwijl Alloy `job="systemd-journal"` levert.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
