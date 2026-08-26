@@ -128,6 +128,15 @@ Van 8 naar **5 dashboards**, alle in map `OLVP`: Node Exporter Full, Windows Exp
 - Golden-image-vondst: `/etc/rsyslog.d/to-servers.conf` stuurt de logs van **élke** VM naar de oude NetXMS 10.10.100.2 — fleet-breed te herzien bij de decommissie.
 - Meet filtereffect via `max(msg_id)`-markeerpunt, niet via een tijdvenster: rijen van vóór de rsyslog-herstart vallen anders binnen je venster.
 
+### Wifi-kick-diagnose + alarmering 2026-08-26
+**Diagnose uit de eigen syslog-data**: 100% van de kicks heeft reden `Low RSSI`. Slechts **12 toestellen** veroorzaken ~6000 kicks, elk aan **één** AP met een **constante** RSSI (7, 8, 10, 11, 14, 15, 16, 21) → vaste toestellen aan de rand van de dekking. 81% gebruikt gerandomiseerde MAC's (telefoons); twee met echt MAC zijn **Intel**-adapters (laptops/desktops). Dit is het bekende **Minimum RSSI kick-loop**-gedrag: de functie werkt alleen als er een bétere AP is om naartoe te roamen; is die er niet, dan verbindt het toestel meteen opnieuw met dezelfde AP.
+**Geleverd**: `platform-ansible/files/netxms/syslog-parser.xml` (3 meegeleverde MikroTik-regels + eigen UniFi-regel), regex getoetst op 1974 echte berichten → 1972 match; de 2 missers zijn `ignored kick-sta-on (reason:On other VAP)`, geen echte kicks. Procedure in `netxms.md`.
+**Gotcha's**:
+- `nxdbmgr get/set` werkt **alleen op de `config`-tabel**; parsers staan in **`config_clob`** en zijn er niet mee te benaderen → console of client-API. Bewust géén SQL-update: de server houdt de parser in geheugen.
+- Custom event moet **"Write to event log" UIT** hebben: ~600 kicks/min = 900k events/dag.
+- **Parser `repeatCount` telt per regel, niet per node** (`m_matchArray` in `libnxlp/rule.cpp`) → geen drempel per AP. Die maak je met een DCI op de interne metric **`ReceivedSyslogMessages`** (delta per minuut + threshold), in een template op de AP's.
+- **AP's moeten eerst NetXMS-nodes zijn**, anders hangt het syslog-bericht nergens aan en kan er geen alarm per AP uit komen.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
