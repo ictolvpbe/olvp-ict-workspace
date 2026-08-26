@@ -111,6 +111,14 @@ Symptoom: `netxms.yml` bleef hangen op "Wachten tot netxmsd de client-poort open
 - Alle 8 zijn **community-dashboards**, geen eigen OLVP-werk → er ging niets verloren door géén `grafana.db` te kopiëren.
 - Kandidaten om op te ruimen: "Loki stack monitoring (Promtail, Loki)" gaat over Promtail dat we door Alloy vervingen; twee Windows-Exporter-dashboards en twee node-exporter-dashboards overlappen; "Loki - Syslog AIO" verwacht syslog-labels terwijl Alloy `job="systemd-journal"` levert.
 
+### Dashboards opgeschoond + Alloy rechtgezet 2026-08-26
+Van 8 naar **5 dashboards**, alle in map `OLVP`: Node Exporter Full, Windows Exporter Dashboard, 2× UniFi-Poller, en het zelfgeschreven **OLVP Logs**. Keuze bij duplicaten onderbouwd met **gemeten metric-dekking** tegen de draaiende Prometheus (Windows 91% vs 88%; Node Exporter Full is het origineel, "Linux Exporter Node" een kopie met dezelfde uid + suffix). Geschrapt: beide Loki-community-dashboards (Promtail-gericht resp. syslog-labels).
+**Drie fouten uit deze ronde:**
+1. **Alloy job-label**: kwam als `loki.source.journal.system` in Loki, niet `systemd-journal` — het `labels`-argument van `loki.source.journal` wordt door `relabel_rules` overschreven. Nu expliciete relabel-regel `target_label = "job"`. Vóór de fix gaf élke query op een leesbare jobnaam **0 resultaten**; erna 390 regels/5 min.
+2. **Alloy bond op 127.0.0.1** → niet te scrapen. `--server.http.listen-addr=0.0.0.0:12345` + `NetworkAlias=alloy` + scrape-job. De log-agent was het enige onbewaakte onderdeel van de keten.
+3. **Bind-mount van één bestand overleeft vervanging niet**: Ansible (en `install`) schrijven naar een tijdelijk bestand en verplaatsen dat → nieuwe inode, container houdt de oude. `POST /-/reload` laadt dan de oude inhoud opnieuw. **Config-wijziging vereist container-restart, geen reload** — de playbook doet dat al via de handler.
+**Stand: 11 van 11 Prometheus-targets up.**
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
