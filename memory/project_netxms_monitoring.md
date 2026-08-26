@@ -143,6 +143,13 @@ User: "kan hier nu niet mee verder, plaats op de todo en negeer de berichten voo
 - **Nog te doen bij oppakken**: Minimum-RSSI-drempel in UniFi herzien + dekking nakijken op de 12 plekken; daarna event `WIFI_CLIENT_KICKED_LOW_RSSI` aanmaken (write-to-log UIT), parser inlezen, EPP-alarm met sleutel `WIFI-KICK-%n`, DCI-drempel op `ReceivedSyslogMessages`.
 - **Nieuwe bron gezien**: `srvv-ubiquiti001.olvp.int` stuurt UniFi-controller-events in **CEF-formaat** — aparte parserregels waard.
 
+### Alarmscherm monitoring-TV (werkwijze 2026-08-26)
+Runbook **RB-2026-NETXMS-KIOSK** (`hosting/operations/deploy-netxms-kiosk.md`). Ubuntu-machine aan de TV in het ICT-lokaal, automatisch aanmelden, dashboard schermvullend.
+- **De web-UI kan dit zelf** via URL-parameters (bevestigd in `nxmc/src/rwt/.../Startup.java`): `auto`, `login`+`password` **of** `token`, `dashboard` (naam **of** ID), `kiosk-mode=true` (geen hoofdvenster, alleen het dashboard).
+- **Wachtwoord i.p.v. token**: `WebAPI.AuthTokenMaxLifetime` staat standaard op **86400 s (24 u)** — een token zou dagelijkse vernieuwing vragen. Alleen-lezen account `kiosk-tv`, wachtwoord in een 0600-bestand, niet in het script.
+- **Gotcha's**: Chromium gebruikt een **eigen NSS-database** en negeert de systeem-truststore → step-ca root apart toevoegen met `certutil`, anders blijft het scherm op een certificaatwaarschuwing hangen. `auto` werkt **één keer per sessie** → mislukte aanmelding laat een inlogvenster achter; vandaar `Restart=always` + nachtelijke herstart via cron. Geen snap-browser (sandbox hindert autostart + certbeheer).
+- Kiosk-account krijgt **geen** recht om alarmen te bevestigen/sluiten — voorkomt dat een voorbijganger iets wegklikt.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
