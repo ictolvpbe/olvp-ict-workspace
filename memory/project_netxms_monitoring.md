@@ -137,6 +137,12 @@ Van 8 naar **5 dashboards**, alle in map `OLVP`: Node Exporter Full, Windows Exp
 - **Parser `repeatCount` telt per regel, niet per node** (`m_matchArray` in `libnxlp/rule.cpp`) → geen drempel per AP. Die maak je met een DCI op de interne metric **`ReceivedSyslogMessages`** (delta per minuut + threshold), in een template op de AP's.
 - **AP's moeten eerst NetXMS-nodes zijn**, anders hangt het syslog-bericht nergens aan en kan er geen alarm per AP uit komen.
 
+### ▶ GEPARKEERD 2026-08-26 — wifi-kicks (tracker **NET-6**)
+User: "kan hier nu niet mee verder, plaats op de todo en negeer de berichten voorlopig."
+- **Berichten gedempt** via `syslog_drop_wifi_kicks: true` (group_vars) → rsyslog-filter vóór de vertakking. Volume 625 → **244 msg/min, 0 kicks**. Op `false` zetten bij het oppakken; de NetXMS-parserregel + procedure liggen klaar.
+- **Nog te doen bij oppakken**: Minimum-RSSI-drempel in UniFi herzien + dekking nakijken op de 12 plekken; daarna event `WIFI_CLIENT_KICKED_LOW_RSSI` aanmaken (write-to-log UIT), parser inlezen, EPP-alarm met sleutel `WIFI-KICK-%n`, DCI-drempel op `ReceivedSyslogMessages`.
+- **Nieuwe bron gezien**: `srvv-ubiquiti001.olvp.int` stuurt UniFi-controller-events in **CEF-formaat** — aparte parserregels waard.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount.
