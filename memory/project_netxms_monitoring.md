@@ -221,6 +221,8 @@ Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle
 2. **`certutil` maakt `~/.pki/nssdb` niet zelf aan** → taak faalde en brak de hele play af vóór de configbestanden. Map nu expliciet aangemaakt.
 3. **Keyring-prompt**: GNOME-keyring wordt ontgrendeld met het aanmeldwachtwoord, dat er bij autologin niet is → **`--password-store=basic`**.
 **Verificatie-truc**: een user-service check je vanaf SSH alleen met `XDG_RUNTIME_DIR=/run/user/<uid>` én `DBUS_SESSION_BUS_ADDRESS`, anders krijg je "Failed to connect to user scope bus".
+**⚠️ Wit scherm 2026-08-27**: service draaide, Chromium draaide, maar **nul verzoeken** in de Caddy-log van 10.70.4.x. Oorzaak: alleen het **beheerpad** was geregeld (A-012, SSH náár het scherm); het **functionele pad** ontbrak — VLAN 73 → `10.35.0.20:443`. DNS resolvet wél, dus het lijkt op een renderprobleem terwijl het een netwerkprobleem is. Firewall-regel **M-004** toegevoegd, **te activeren in UniFi**. Diagnose-volgorde die werkt: Caddy-access-log op bron-IP → `getent hosts` op het toestel → `</dev/tcp/IP/443>`.
+
 **⚠️ Security (SEC-5, verhoogd naar HOOG)**: de oude opzet startte de NetXMS-desktopconsole tegen 10.10.100.2 met het wachtwoord van het NetXMS-account **`system`** in **klare tekst** in `/home/monitor/AUTOSTART/startup.sh` én `.config/autostart/nxmc.desktop` (root-owned, wereldleesbaar). Autostart-entry wordt nu door `kiosk.yml` verwijderd; **wachtwoord van `system` moet geroteerd** of met de oude server gedecommissioneerd worden. Rest van `AUTOSTART/` bewust laten staan om na te kijken.
 
 ## Volgende stap
