@@ -207,6 +207,13 @@ Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle
 - **⚠️ NIET UITGEVOERD — het toestel was op 10.34.0.25 onbereikbaar** vanaf het werkstation (10.10.150.27, VLAN 10) én vanaf VLAN 35 (monitoring-VM en jump-01): geen ICMP, geen poort 22. Dat is de bedoelde richting van het beheerpad (VLAN 34 → rest, niet omgekeerd). Ansible moet dus draaien vanaf een werkstation ín VLAN 34, óf er komt een gerichte firewall-uitzondering. Ook nog te doen: `ansible`-account op het toestel bootstrappen (vereist eenmalig een persoonlijk sudo-account daar).
 - Codificatie-gotcha's: `gsettings` vereist een sessie → dconf-systeemdefaults; `systemctl --user enable` vereist `XDG_RUNTIME_DIR` → wants-symlink zelf leggen; op Debian is het `daemon.conf`, niet `custom.conf`.
 
+### Toestel in beheer 2026-08-27 — bijna klaar
+- Firewall **A-012 actief**, toestel verhuisd naar **10.70.4.20** (VLAN 73). Vanaf het werkstation: ICMP + poort 22 OK, `ansible`-account werkt met de canonical key, sudo → root. Debian **13.6**, gdm actief.
+- **Hostnaam was `PC-ITMONITOR`** (weer een afwijking van de documentatie, zoals eerder `SRVV-MONITOR-01`) → hernoemd naar **`PC-MONITORING-01`**, ook in `/etc/hosts` en de FQDN.
+- **⚠️ Toestel is hergebruikt en draagt ballast mee** — op ALLE interfaces: Webmin **10000**, Usermin **20000**, xrdp **3389**, postfix **25**; plus postfix én exim4 tegelijk actief, en `/etc/mailname` nog op de oude naam. xrdp geeft toegang tot precies de sessie die straks automatisch aanmeldt. **User: eerst kiosk werkend krijgen** → vastgelegd als tracker **SEC-5** + opruimlijst in `endpoints.md`.
+- Chromium stond er nog niet; `kiosk.yml` installeert dat.
+- **Nog te doen**: `ansible-playbook kiosk.yml --diff --ask-vault-pass` draaien (vault-key `netxms_kiosk_password` staat er), daarna **reboot** — automatisch aanmelden werkt pas na herstart en de kiosk-service start bij de volgende grafische sessie.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
