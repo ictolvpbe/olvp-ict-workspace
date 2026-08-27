@@ -214,6 +214,15 @@ Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle
 - Chromium stond er nog niet; `kiosk.yml` installeert dat.
 - **Nog te doen**: `ansible-playbook kiosk.yml --diff --ask-vault-pass` draaien (vault-key `netxms_kiosk_password` staat er), daarna **reboot** — automatisch aanmelden werkt pas na herstart en de kiosk-service start bij de volgende grafische sessie.
 
+### ✅ Kiosk DRAAIT 2026-08-27 19:15
+`netxms-kiosk.service` active (running), Chromium als hoofdproces, cert `olvp-step-ca` met trust `C,,` in de NSS-database, bestanden in `/home/monitor` (env 0600, script 0750), wants-symlink aanwezig, `graphical-session.target` active.
+**Drie fouten in mijn eerste opzet (fix `d6f7cfb`):**
+1. **Verkeerde gebruiker**: playbook maakte een nieuwe `kiosk`-user, maar het toestel had al automatisch aanmelden op **`monitor`** (uid 1001) — de sessie landde dus nooit in dat account. Nu: bestaande sessiegebruiker gebruiken, alleen aanmaken indien afwezig. Controle: `loginctl list-sessions` vs `AutomaticLogin=` in `/etc/gdm3/daemon.conf`. De foutief aangemaakte `kiosk`-user is verwijderd.
+2. **`certutil` maakt `~/.pki/nssdb` niet zelf aan** → taak faalde en brak de hele play af vóór de configbestanden. Map nu expliciet aangemaakt.
+3. **Keyring-prompt**: GNOME-keyring wordt ontgrendeld met het aanmeldwachtwoord, dat er bij autologin niet is → **`--password-store=basic`**.
+**Verificatie-truc**: een user-service check je vanaf SSH alleen met `XDG_RUNTIME_DIR=/run/user/<uid>` én `DBUS_SESSION_BUS_ADDRESS`, anders krijg je "Failed to connect to user scope bus".
+**⚠️ Security (SEC-5, verhoogd naar HOOG)**: de oude opzet startte de NetXMS-desktopconsole tegen 10.10.100.2 met het wachtwoord van het NetXMS-account **`system`** in **klare tekst** in `/home/monitor/AUTOSTART/startup.sh` én `.config/autostart/nxmc.desktop` (root-owned, wereldleesbaar). Autostart-entry wordt nu door `kiosk.yml` verwijderd; **wachtwoord van `system` moet geroteerd** of met de oude server gedecommissioneerd worden. Rest van `AUTOSTART/` bewust laten staan om na te kijken.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
