@@ -197,6 +197,13 @@ Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle
 - Runbook + `netxms.md` aangescherpt: beide A-records staan nu apart in de pre-flight én in de verificatie-checklist, met een `dig`-commando tegen de autoritatieve DC.
 - Bijvangst: **`*.olvp.be` is een wildcard** bij one.com → elke naam onder dat domein resolvet naar 46.30.213.100. Vastgelegd in [[reference-dns-olvpbe]].
 
+### 2026-08-27 — TV-toestel geüpgraded + opgenomen in beheer
+- **Debian 11 → 12 → 13 gelukt** (user). Runbook **RB-2026-DEB1113** vastgelegd (`hosting/operations/upgrade-debian-11-to-13.md`), fleet-breed bruikbaar. Kernpunten: Debian 11 uit reguliere support sinds 2024-08-14, Debian 12 sinds 2026-07-11 → alleen 13 is een zinvolle eindbestemming; geen sprongen mogelijk; `non-free-firmware` is nieuw in 12; `apt modernize-sources` (apt 3.0) zet `.list` om naar deb822.
+- **Toestel = `PC-MONITORING-01`, 10.34.0.25, VLAN 34.** Naam volgens `naming.md` (prefix `PC` + functie-patroon). Opgenomen in `inventory.yml` als eigen top-level groep **`kiosk_devices`** (eindtoestel, geen servertier → geen group_vars van servers erven) en in nieuwe doc `network-physical/physical/endpoints.md`.
+- **`kiosk.yml` geschreven** (commit `c8f53e3`): Chromium, kiosk-gebruiker, step-ca root in systeem-truststore **én** NSS-database, gdm3-autologin, dconf-systeemdefaults voor schermbeveiliging, env-bestand 0600, startscript met DNS-wachtlus, systemd-gebruikersservice + nachtelijke cron. Vault-key nodig: **`netxms_kiosk_password`**.
+- **⚠️ NIET UITGEVOERD — 10.34.0.25 is onbereikbaar** vanaf het werkstation (10.10.150.27, VLAN 10) én vanaf VLAN 35 (monitoring-VM en jump-01): geen ICMP, geen poort 22. Dat is de bedoelde richting van het beheerpad (VLAN 34 → rest, niet omgekeerd). Ansible moet dus draaien vanaf een werkstation ín VLAN 34, óf er komt een gerichte firewall-uitzondering. Ook nog te doen: `ansible`-account op het toestel bootstrappen (vereist eenmalig een persoonlijk sudo-account daar).
+- Codificatie-gotcha's: `gsettings` vereist een sessie → dconf-systeemdefaults; `systemctl --user enable` vereist `XDG_RUNTIME_DIR` → wants-symlink zelf leggen; op Debian is het `daemon.conf`, niet `custom.conf`.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
