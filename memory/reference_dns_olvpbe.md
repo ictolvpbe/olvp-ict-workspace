@@ -41,10 +41,13 @@ Migratie-aandachtspunten:
 
 **FYI over `.int` als TLD:** `.int` is door IANA gereserveerd voor intergouvernementele organisaties (NATO, ITU, EU-instellingen). In de praktijk werkt het ongestoord voor intern gebruik omdat publieke `.int`-records uitsluitend bij die internationale organisaties zitten. Sinds 2024 heeft ICANN officieel `.internal` gereserveerd voor private use, wat de "RFC-conforme" keuze zou zijn voor nieuwe deployments. OLVP houdt voorlopig `.olvp.int` — wijziging is een toekomstige doc-werf met breed impact (AD-config, GPO, certs, scripts). Geen acute actie.
 
+**Wildcard op `olvp.be` (vastgesteld 2026-08-27):** one.com serveert een **wildcard A-record** — `*.olvp.be` → `46.30.213.100`, hetzelfde IP als de apex. Élke naam onder dat domein resolvet dus, ook namen die niet bestaan (`zomaarietsdatnietbestaat.olvp.be` antwoordt gewoon). Gevolg bij troubleshooting: een `.olvp.be`-naam die "resolvet" bewijst **niets** over het bestaan van een record, en een typefout landt stil op de publieke parkeerpagina in plaats van een eerlijke NXDOMAIN te geven. Interne diensten staan daarom onder `olvp.int`, waar NXDOMAIN wél betekenisvol is. Mee te nemen bij de migratie naar Cloudflare: bewust beslissen of die wildcard blijft.
+
 **How to apply:**
 - Nieuwe interne **productie**-service → FQDN `<naam>.olvp.int`, record toevoegen aan interne resolver.
 - Nieuwe interne **test**-service → FQDN `<naam>.olvp.test`, record toevoegen aan interne resolver.
 - Nieuwe publieke service → FQDN `<naam>.olvp.be`, record toevoegen aan one.com (Fase 1) / Cloudflare (Fase 2).
 - **Voor host-aliassen binnen olvp.int**: gebruik **dubbele A-records** (canonical + alias, beide met hetzelfde IP). Geen CNAMEs — UniFi-DNS-resolver serveert die niet betrouwbaar (NXDOMAIN bij CNAME-lookup binnen eigen zone). Bij IP-wijziging: alle aliassen mee-updaten. Zie [[project-naming-convention]] voor details.
+- **Verifieer een nieuw record altijd tegen de autoritatieve DC** (`dig +short @10.10.0.10 <naam>`), niet tegen de lokale stub-resolver — die kan een oud antwoord cachen en verbergt of het record echt bestaat.
 - Cert-strategie: interne `.olvp.int`-services krijgen step-ca-cert (intern getekend). Publieke `.olvp.be`-services krijgen LE-cert via HTTP-01 (Fase 1) of DNS-01 op Cloudflare (Fase 2). Zie [[project-architecture-haproxy]].
 - Onthoud: `expose: internal` Odoo-instances (zoals `myschool-acc`) staan in `.olvp.int`, niet in `.olvp.be`. Bij `[[project-infrastructure-params]]`-tabel zijn die als "internal" gemarkeerd — interpreteer als `.olvp.int`-FQDN.

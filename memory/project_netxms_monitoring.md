@@ -189,6 +189,14 @@ Dashboard **`OLVP`** (object-id 7613) met alarm viewer + SNMP-trap monitor + sys
 Het toestel aan de TV draait **Debian 11**. Uit reguliere ondersteuning sinds **2024-08-14**; Debian 12 sinds **2026-07-11**. Alleen 13 loopt door (tot 2028-08-09). Debian laat geen sprongen toe → **11 → 12 → 13**, release na release. Pas dáárna de kiosk bouwen volgens **RB-2026-NETXMS-KIOSK** (runbook staat inmiddels op Debian, niet Ubuntu: `gdm3` leest `/etc/gdm3/daemon.conf`, en Chromium is een gewone `.deb`).
 Het bestaande bash-script op het toestel wordt vervangen door het script uit stap B7 van het runbook (user-keuze).
 
+### 2026-08-27 — "netxms onbereikbaar" was DNS, niet de dienst
+Melding: web-UI onbereikbaar. Stack bleek volledig gezond — 12 containers up, `https://monitoring.olvp.int/` gaf end-to-end 200 op `/nxmc-light.app` met geldig step-ca-cert, cert-renewal-timer normaal (24-uurs certs, twee runs per dag), netxmsd stabiel sinds 26/08 14:49 zonder lock-problemen.
+
+Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle drie de DC's (10.10.0.10, 10.33.0.10, 10.10.0.11) met identieke SOA-serial, dus geen replicatie-achterstand. Alleen `monitoring.olvp.int` en `srvv-monitoring-01.olvp.int` bestaan. Het stond sinds 25/08 als openstaand punt en is er nooit gekomen; runbook en doc noemden `netxms.olvp.int` wél overal als primaire URL — de valstrik.
+- **Les**: bij "dienst onbereikbaar" eerst de naam scheiden van de dienst. `curl --resolve <naam>:443:<ip>` beantwoordt in één commando of het transport of de naamgeving stuk is.
+- Runbook + `netxms.md` aangescherpt: beide A-records staan nu apart in de pre-flight én in de verificatie-checklist, met een `dig`-commando tegen de autoritatieve DC.
+- Bijvangst: **`*.olvp.be` is een wildcard** bij one.com → elke naam onder dat domein resolvet naar 46.30.213.100. Vastgelegd in [[reference-dns-olvpbe]].
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
