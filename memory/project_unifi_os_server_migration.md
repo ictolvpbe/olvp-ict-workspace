@@ -76,6 +76,15 @@ Migratie-werf (gepland, geen deadline — tracker-rij **NET-1**): huidige UniFi 
   - **BZ/192.168-poot** (≈20 op korte naam) bewust onaangeroerd → split-off-beslissing.
 - **Device-CLI-gotcha** (zie [[feedback-unifi-device-noninteractive-cli]]): `info`/`set-inform` zijn interactieve shell-aliassen → non-interactief `mca-cli-op info` / `mca-cli-op set-inform <url>`; káál `mca-cli-op` loopt oneindig (genereerde 154MB). SSH-automation: device-user `zeus`, `ssh -n` verplicht in while-read-loop, `SSH_ASKPASS`-truc voor pw.
 
+**STAND 2026-08-28 — "controller start niet op" was een toegangsprobleem:**
+De VM stond 10 dagen uit (journaal springt van 18/08 11:14 naar de boot van 28/08 12:30). Na het opstarten bleek de software volledig gezond: `uosserver.service` active, container `uosserver` healthy, ín de container draaien `unifi.service`, `unifi-core`, `unifi-directory`, mongodb, postgres, nginx, rabbitmq — **geen enkele failed unit**. `https://10.35.0.15:11443/` geeft 200, `/network/` ook.
+- **Oorzaak van de melding**: poort **443 is dicht** (UOS luistert alleen op 11443) en beide hostnamen helpen niet — `srvv-unifi-01.olvp.int` staat **nog altijd NXDOMAIN** (openstaand sinds 15/06) en `unifi.olvp.int` wijst bewust nog naar de oude controller `10.10.100.15:8443`. Er is dus géén werkende naam voor de nieuwe controller; enkel IP+poort.
+- **User heeft "Start at boot" aangezet** in Proxmox (28/08).
+- **VLAN 34 bereikt `10.35.0.15` niet** (user). Verklaring: A-001/A-002 dekken `MGMT-APPLIANCES` en `.15` staat wel in de matrix-definitie, maar de regels staan daar als "Te configureren" — de host is nog niet in de echte UniFi host-list opgenomen. `.20` werkt wél vanaf VLAN 34, dus het is host-specifiek, geen zone-probleem.
+- **Runbook-volgordefout gevonden en gefixt**: A-001/A-002 (admin-toegang) stonden in **Fase 5**, ná de restore — maar je hebt ze al nodig in Fase 2/3 om te installeren en te restoren. Verplaatst naar **Fase 1 stap 5**; Fase 5 houdt alleen NM-001/NM-002 (device-inform) over.
+- **Config-overdracht nog niet gebeurd** (user): geen netwerken, WLAN's, poortprofielen op de nieuwe controller. Dat is per definitie zo — er is **geen sync tussen de twee controllers**, de `.unf`-restore (Fase 3) is het enige transportmiddel. Runbook heeft nu een expliciete waarschuwing plus een verificatielijst na de restore (netwerken/VLAN's, WLAN's + PSK, poortprofielen, firewall-regels, device-namen, admins/sites, Override Inform Host).
+- Runbook ook gecorrigeerd: eerste login stond op `https://10.35.0.15` **of `https://unifi.olvp.int`** — beide fout (443 dicht; de hostname wijst naar de oude controller, je zou de verkeerde configureren).
+
 **VOLGENDE — de eigenlijke cut-over (runbook RB-2026-UNIFI-MIGRATE, vakantie-window aanbevolen, géén dataplane-impact maar controller-down):**
 - **Fase 0** (nu veilig, niet-destructief): `.unf`-backup downloaden van de OUDE controller (10.10.100.15) → Settings → Control Plane → Backups → Download. Bewaren buiten de oude host.
 - **Fase 3**: vzdump nieuwe VM → oude `systemctl stop unifi` → `.unf` restoren op SRVV-UNIFI-01.

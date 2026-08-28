@@ -49,3 +49,9 @@ Elke inter-zone ACCEPT-regel in UniFi heeft een checkbox **`Retourverkeer Automa
 - Bij significante scaling (meer apps, meer admins) — vermoedelijk pas Fase 4+.
 
 Gerelateerd: [[project-security-layers]] (defense-in-depth), [[project-infrastructure-params]] (VLAN-lijst), [[feedback-risk-aware-changes]] (waarom we voorzichtig zijn met grote firewall-revisies). Doc: `platform-handbook/network-physical/network/firewall-zones.md`.
+
+**BEVINDING 2026-08-28 — VLAN 10 bereikt VLAN 35 breed.**
+Vanaf het werkstation-laptop op **`10.10.150.27` (VLAN 10 USERS, wifi `wlp5s0`)** stonden alle geteste mgmt-poorten open: `10.35.0.15:22/8080/11443`, `10.35.0.20:22/443`, `10.35.0.10:3000` (Semaphore), `10.35.0.11:443` (Forgejo), `10.35.0.2:22` (bastion). Dat is de tegenovergestelde richting van de bedoelde defense-in-depth: gebruikers-VLAN → mgmt-appliances hoort dicht te zijn, met admin-toegang uitsluitend vanaf `ADMIN-WORKSTATIONS` (VLAN 34) via A-001/A-002.
+Nog niet uitgezocht of dit **host-specifiek** is (een admin-uitzondering op dit IP/clientgroep) of **VLAN-breed**. Te testen vanaf een gewoon user-toestel in VLAN 10; bij VLAN-breed is dit een prio-bevinding voor fase 1b.
+
+⚠️ **Correctie op een aanname die in meerdere memories staat**: het werkstation waarop Claude draait zit **niet** op VLAN 34 maar op VLAN 10 (wifi, 10.10.150.27). Uitspraken als "werkstation (VLAN 34 Admin) bereikt .20 direct" kloppen qua uitkomst maar niet qua reden. Bij bereikbaarheidstests dus altijd eerst `ip route get <doel>` — zie ook [[feedback-test-from-user-vlan]], dat precies hierover gaat.
