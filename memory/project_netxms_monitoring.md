@@ -232,6 +232,13 @@ Werkelijke oorzaak: **`netxms.olvp.int` bestaat niet in DNS.** NXDOMAIN van alle
 
 **⚠️ Oorspronkelijke bevinding (SEC-5)**: de oude opzet startte de NetXMS-desktopconsole tegen 10.10.100.2 met het wachtwoord van het NetXMS-account **`system`** in **klare tekst** in `/home/monitor/AUTOSTART/startup.sh` én `.config/autostart/nxmc.desktop` (root-owned, wereldleesbaar). Autostart-entry wordt nu door `kiosk.yml` verwijderd; **wachtwoord van `system` moet geroteerd** of met de oude server gedecommissioneerd worden. Rest van `AUTOSTART/` bewust laten staan om na te kijken.
 
+### 2026-08-28 — EFG-migratie uitgevoerd + stille syslog-breuk gevonden
+De **UniFi Enterprise Fortress Gateway is 's middags in dienst gesteld** (gateway-cutover). Controle na afloop: werkstation bereikt monitoring-VM, kiosk en jump-01; alle 11 Prometheus-targets up; kiosk-service actief en `monitoring.olvp.int` geeft 302; Loki krijgt syslog. **A-012 en M-004 hebben de cutover overleefd.**
+**⚠️ Wél gevonden: syslog kwam sinds 27/08 18:04 niet meer in NetXMS.** Loki kreeg 981 regels/5 min, NetXMS 0. Oorzaak: een herstart van netxmsd sluit kort poort 1514 → rsyslog krijgt ICMP port unreachable op zijn UDP-doel → doorgifte hervat niet. **`action.resumeRetryCount="-1"` lost dit NIET op** (getest: daarna nog steeds 0/min): de socket zelf blijft stuk.
+**Fix**: systemd-drop-in `/etc/systemd/system/netxms-server.service.d/rsyslog-reconnect.conf` met `ExecStartPost=/usr/bin/systemctl restart rsyslog`. Bewezen: **311 berichten/min na een herstart zonder handmatig ingrijpen**. Gecodificeerd in `netxms.yml`.
+**De les**: dit was 20 uur onopgemerkt omdat de bestanden bleven vollopen en Loki alles kreeg — dashboards ogen gezond terwijl NetXMS stilvalt. Controleer `max(msg_timestamp)` in de `syslog`-tabel, niet of er logs binnenkomen. Kandidaat voor een DCI/alert.
+Bevestigd bij dezelfde controle: **StopTimeout-fix werkt** — netxmsd herstartte schoon zonder lock-melding.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
