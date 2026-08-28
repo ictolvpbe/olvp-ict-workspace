@@ -18,6 +18,10 @@ Bewijs van het `.2`-conflict: SSH-hostkey op `10.35.0.2` wisselde tijdens de sto
 
 Vastgelegd in repo: `platform-handbook/network-physical/reference/ip-plan.md` (commit `a326d86`) — tabelregel `10.35.0.3` + waarschuwingsblok "Gateway-cutover-incident".
 
+## Update 2026-08-28 — indienststelling gepland
+De nieuwe gateway is een **UniFi Enterprise Fortress Gateway (EFG)** (productnaam geverifieerd bij Ubiquiti — *Enterprise*, niet Edge). User plant de **indienststelling binnen twee weken** (uiterlijk 2026-09-10), omdat **SEC-5** daaraan opgehangen is: de meegekomen diensten op `PC-MONITORING-01` (Webmin/Usermin/xrdp op `0.0.0.0`) worden bij die cutover afgeschermd.
+⚠️ Dat koppelt een securitydeadline aan de volledige cutover uit de checklist hieronder — publieke DNS, alle firewall-zones opnieuw, default-gateways en interne DNS. Schuift de cutover, dan schuift SEC-5 mee.
+
 ## Voor de échte cutover (checklist, nog te doen)
 - **Publieke DNS** (one.com): `84.199.147.82` -> nieuw `.84`-blok; **TTL vooraf naar 300s** (24u TTL nu). DNAT 80/443->VIP + NAT-hairpin opnieuw op de nieuwe gw.
 - **Alle firewall-zones/regels** opnieuw aanbrengen — `firewall-rules-matrix.md` = checklist; let op "Retourverkeer automatisch toestaan"-gotcha.
