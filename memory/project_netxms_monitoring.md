@@ -239,6 +239,12 @@ De **UniFi Enterprise Fortress Gateway is 's middags in dienst gesteld** (gatewa
 **De les**: dit was 20 uur onopgemerkt omdat de bestanden bleven vollopen en Loki alles kreeg — dashboards ogen gezond terwijl NetXMS stilvalt. Controleer `max(msg_timestamp)` in de `syslog`-tabel, niet of er logs binnenkomen. Kandidaat voor een DCI/alert.
 Bevestigd bij dezelfde controle: **StopTimeout-fix werkt** — netxmsd herstartte schoon zonder lock-melding.
 
+### Open bij afsluiten 2026-08-28
+- **MON-1 (nieuw)**: Chromium op de kiosk opent na het opstarten **verkleind met menubalk**, alsof Super is ingedrukt, en blijft zo. Service en UI werken wél. Sporen: GNOME-Activities-overzicht bij aanmelden (GNOME Shell **48.7**), kiosk-modus op **Wayland** (geen `XSession` in AccountsService), of timing t.o.v. `graphical-session.target`. Eerste test: Esc indrukken op de TV.
+- **Syslog-bewaking half af**: DCI `Server.ReceivedSyslogMessages` (item **2809**, node 100) verzamelt correct met delta per minuut (~100-580/min), drempel staat goed (`F_LAST` + `OP_EQ`, 5 samples, waarde 0, enabled). **Maar er is geen EPP-regel** → drempel maakt een event, géén alarm, dus niets op de TV. Nog te doen: events `SYSLOG_INGEST_STOPPED`/`_RESUMED` aanmaken, in de drempel zetten, en twee EPP-regels met gedeelde sleutel `SYSLOG_INGEST_%i` (patroon van de node-down-regels).
+- **Dubbelganger**: template 194 levert op node 100 een DCI `ReceivedSyslogMessages` **zonder** `Server.`-voorvoegsel die altijd 0 geeft. Geen drempel op zetten.
+- **DB-gotcha**: `idata_timestamp` staat in **milliseconden**.
+
 ## Volgende stap
 1. `netxms.yml` nog één keer draaien ter bevestiging van idempotentie (alles ok, verify groen).
 2. Eerste login op `https://netxms.olvp.int/` vanaf VLAN 34/10.x, admin-wachtwoord roteren, persoonsgebonden beheerdersaccount. Management-node is hernoemd naar `SRVV-MONITORING-01`; die hangt nu zowel automatisch onder *Virtuele Servers* als handmatig onder *linux* — dubbeling nog op te ruimen.
