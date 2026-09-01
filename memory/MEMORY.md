@@ -70,3 +70,5 @@
 - [NetXMS monitoring-werf](project_netxms_monitoring.md) — NetXMS 6.2.3 + observability-stack (Grafana/Prometheus/Loki/Alloy) live op SRVV-MONITORING-01 (10.35.0.20, VLAN 35); objectboom via alias-gestuurde autobind, 167/181 nodes toegewezen
 - [Taallabel niet in plak-blokken](feedback_code_fence_label_in_ui_fields.md) — code-blokken bedoeld voor een UI-scriptveld krijgen geen taallabel; het wordt mee gekopieerd en breekt het script stil
 - [Netwerkdetectie (NSM)](project_network_detection.md) — Suricata-sensor i.p.v. Security Onion (ADR 0007, R-30); UniFi IDS detection-modus als meetstap; Fase 4
+- [Offline backup-keten](project_offline_backup_chain.md) — NAS→USB 1,1 TB 2×/week op 3 roterende schijven; draaide ongedocumenteerd op het kiosk-toestel, verhuist naar PC-BACKUP-01 in VLAN 19; cloud-pull blijft aparte VM
+- [Same-subnet test bewijst niets](feedback_same_subnet_test_proves_nothing.md) — bij "onbereikbaar": test vanuit andere zone tegen een 2e host in het doelsubnet om firewall van eindtoestel te scheiden
