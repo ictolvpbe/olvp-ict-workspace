@@ -27,7 +27,7 @@ metadata:
 **Open (stand 2026-09-15).**
 1. `netxms-agent.yml` **nooit effectief gedraaid**: `/etc/nxagentd.conf` op monitoring is het pakket-bestand van 2023. Eerst `-e target_limit=srvv-monitoring-01`, dan console-stappen gotcha 19.
 2. **haproxy-2 (BACKUP) flapt door een IP-conflict met de OUDE gateway** (bewezen 2026-09-15): haproxy-2 = MAC `bc:24:11:d2:4c:1d`, maar haproxy-1 resolvet `10.21.0.7` consequent naar `0c:ea:14:19:e4:11` (oude gw). TCP vanaf haproxy-2 werkt enkele seconden, valt dan volledig weg → checks L4TOUT. VIP op haproxy-1 dus geen gebruikersimpact, maar **geen werkende failover**. Fix = interface van de oude gw van `.7` af (of oude gw uit die VLANs), daarna ARP flushen. Verklaart ook 22/443 dicht vanaf VLAN 34 op 14/09. **✅ Opgelost 2026-09-15 13:25**: user haalde de oude gw van `10.21.0.7`; haproxy-1 ziet nu `bc:24:11:d2:4c:1d`, TCP-reeks vanaf haproxy-2 10/10 ok, alle 4 backends UP (L7OK) op beide nodes → failover weer bruikbaar.
-3. Wees-cert `/etc/caddy/id.olvp.be.*` op SRVV-ODOO-01 (niet in Caddyfile of container) → WARN bij elke run; verwijderen.
+3. ✅ Wees-cert `id.olvp.be` op SRVV-ODOO-01 verplaatst naar `/root/orphan-certs-20260915/` (2026-09-15; niet gemount, HAProxy stuurt id.olvp.be naar be_keycloak op ID-01). Renew-run nu zonder WARN.
 4. Repos niet gepusht: platform-ansible ahead 33; platform-handbook ahead 57/behind 3 (overlap `migrate-unifi-controller.md`); workspace ahead/behind 4 (overlap `MEMORY.md`, `project_unifi_os_server_migration.md`).
-5. `forgejo.olvp.int` heeft twee A-records (`10.35.0.11` + oud `10.36.0.11`) → oude weghalen op AD-DNS.
+5. ✅ `forgejo.olvp.int`: AD-DC geeft enkel nog `10.35.0.11` (gecontroleerd 2026-09-15); het dubbele antwoord van 14/09 was een resolver-cache op de laptop.
 6. Firefox mist de step-ca-root; Chrome-melding "niet beveiligd" was sessie-uitzondering van het verlopen cert.
