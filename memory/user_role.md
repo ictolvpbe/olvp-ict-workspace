@@ -11,7 +11,7 @@ User werkt als ICT-coördinator voor OLVP (Belgische school, domein olvp.be, con
 
 Verantwoordelijkheidsgebied:
 - Odoo MySchool-instances (meerdere, verdeeld over test-VLAN en productie-VLAN)
-- UniFi networking: Gateway Pro nu, Enterprise Fortress upgrade gepland
+- UniFi networking: Enterprise Fortress Gateway (EFG) in dienst sinds 2026-08-28 (was Gateway Pro)
 - Caddy reverse proxy op Odoo-servers
 - DNS-zone olvp.be (registratie bij one.com)
 - Andere subdomeinen onder olvp.be (vb. baple.olvp.be — niet-Odoo, nog te inventariseren)

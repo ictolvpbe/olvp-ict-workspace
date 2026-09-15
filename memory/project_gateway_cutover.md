@@ -1,11 +1,20 @@
 ---
 name: project-gateway-cutover
-description: "Nieuwe UniFi-gateway parallel opgezet (juni 2026); doel = volledige cutover (re-IP alles) later. NU draait netwerk via OUDE gw (WAN+DNAT op .82) en dat moet zo blijven. Incident 2026-06-16: DHCP op nieuwe gw + .2-IP-conflict met jump-01 brak externe bereikbaarheid; opgelost (nieuwe gw VLAN35-interface -> 10.35.0.3)."
+description: "EFG (Enterprise Fortress Gateway) in dienst sinds 2026-08-28. Cutover liet gaten: VLAN 21/22 zonder gateway-IP (step-ca+HAProxy weken onbereikbaar, gefixt 2026-09-14) en DHCP nog actief op de OUDE gw in VLAN 34 (gefixt 2026-09-15). Incident 2026-06-16 (parallelle gw) blijft de les."
 metadata:
   type: project
 ---
 
-**Status 2026-06-17.** Een **nieuwe UniFi-gateway** staat **parallel** naast de oude (opgezet 2026-06-15/16). Intentie = **volledige cutover** (nieuwe vervangt oude) = alle interne IP's + externe adressen omzetten — gepland als aparte werf/window, **nog niet uitgevoerd**.
+## Stand 2026-09-15 — EFG in dienst, cutover-gaten opgeduikt
+De **EFG draait sinds 2026-08-28** (zie [[project-netxms-monitoring]]). De secties hieronder van vóór die datum beschrijven de parallelle fase en zijn historisch. Twee gaten bleken pas weken later:
+- **VLAN 21 (HAProxy) + 22 (step-ca) hadden geen gateway-IP op de EFG.** Vanaf 29/08 bereikte niets step-ca of HAProxy → alle 24u step-ca-certs verlopen, publieke sites 503. User zette de IP's op 2026-09-14 (volgens user voor "de 3 VLANs"). Zie [[project-stepca-cert-incident-202609]].
+- **DHCP stond nog aan op de oude gateway in VLAN 34**: `10.34.0.7`, MAC `0c:ea:14:19:e4:11`, deelde zichzelf uit als gateway + DNS → vanaf het beheerwerkstation was niets meer bereikbaar. Uitgezet 2026-09-15. **Nog na te kijken**: DHCP van de oude gw op de andere VLANs.
+- **De oude gateway staat nog op `.7` in meerdere VLANs** (MAC `0c:ea:14:19:e4:11`, bevestigd 2026-09-15): `10.34.0.7` (DHCP, gefixt), `10.35.0.7` (antwoordt), **`10.21.0.7` = IP-conflict met haproxy-2** → failover stuk. `10.36.0.7` antwoordt niet. **Verdacht, niet getest**: de NAS staat op `10.19.0.7` + `10.10.100.7` — het "antwoordt alleen in eigen subnet"-symptoom van de backup-storing (31/08, [[project-offline-backup-chain]]) past bij een zelfde conflict. Les van 16/06 herhaalt zich: een gateway mag nooit een host-IP innemen.
+- EFG VLAN 34: gateway `10.34.0.1`, MAC `58:d6:1f:4f:cb:9d` (zelfde MAC op VLAN 35/36). Beheer VLAN 34 → 35/36/200 gaat **rechtstreeks**; DMZ (21/22) enkel via jump-01 (A-004).
+- **Diagnose-truc**: bij "plots niets bereikbaar" eerst `nmcli -f DHCP4 device show <if>` (server_identifier/routers) en `ip neigh` op de gateway — een vreemde MAC wijst meteen een tweede DHCP-server aan.
+- Open: publieke DNS-omzetting, SEC-5 en de UI-lock uit de checklist hieronder zijn niet geverifieerd; haproxy-2 ziet backends flappen (mogelijk EFG-gerelateerd).
+
+**Status 2026-06-17 (historisch).** Een **nieuwe UniFi-gateway** staat **parallel** naast de oude (opgezet 2026-06-15/16). Intentie = **volledige cutover** (nieuwe vervangt oude) = alle interne IP's + externe adressen omzetten — gepland als aparte werf/window, **nog niet uitgevoerd**.
 
 ## Huidige (tijdelijke) toestand — niet wijzigen tot cutover
 - **WAN-uplink + DNAT zitten op de OUDE gw** (publiek IP `84.199.147.82`). Netwerk loopt via de oude gw en **moet zo blijven**.
