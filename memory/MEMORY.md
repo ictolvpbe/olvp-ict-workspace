@@ -73,3 +73,4 @@
 - [Netwerkdetectie (NSM)](project_network_detection.md) — Suricata-sensor i.p.v. Security Onion (ADR 0007, R-30); UniFi IDS detection-modus als meetstap; Fase 4
 - [Offline backup-keten](project_offline_backup_chain.md) — NAS→USB 1,1 TB 2×/week op 3 roterende schijven; draaide ongedocumenteerd op het kiosk-toestel, verhuist naar PC-BACKUP-01 in VLAN 19; cloud-pull blijft aparte VM
 - [Same-subnet test bewijst niets](feedback_same_subnet_test_proves_nothing.md) — bij "onbereikbaar": test vanuit andere zone tegen een 2e host in het doelsubnet om firewall van eindtoestel te scheiden
+- [UniFi set-inform niet duurzaam](feedback_unifi_set_inform_not_persistent.md) — per-device set-inform reverteert bij elke provision (override_inform_host=False); enkel controller-side Override Inform Host houdt stand
