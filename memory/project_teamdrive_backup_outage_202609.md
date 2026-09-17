@@ -35,3 +35,20 @@ De verse mount van 10:50 was schrijfbaar (`touch` in de root slaagde). De achter
 **Te onderzoeken op de NAS**: share-rechten van het account op `clbu_full`/`clbu_diff` (read-only of read-write?), SMB-sessielogs, firmwareversie. **Zuiverste test**: het nieuwe account `svc-clbu-rw` op een apart mountpoint, en dan `mkdir` van een geneste map plus een aanhoudende schrijfreeks — niet alleen een `touch`, want juist `mkdir` faalde. Tijdens die test `grep CLBU /proc/mounts` herhalen: verdwijnt `serverino`, dan is de reconnect gereproduceerd.
 
 **How to apply (aangescherpt)**: bij een CIFS-doel is "de mount bestaat en zegt rw" geen bewijs dat je kan schrijven. Test met **`mkdir`**, niet met `touch`, en test aanhoudend — niet één keer. Een mount die omslaat na een reconnect ziet er in `df` en `/proc/mounts` volstrekt gezond uit.
+
+## Eindstand 2026-09-17 15:10 — draait op SRVV-P-BACKUP-01
+
+De rol `cloud-backup` is uitgerold op [[project-srvv-p-backup-01]] en `--list-only` detecteert alle Shared Drives. De eerste volledige run is gestart.
+
+**Correctie op mijn conclusie van 12:00.** Ik schreef toen stellig dat het read-only worden een **NAS-probleem** was, op grond van het verdwijnen van `serverino` bij een reconnect. Dat is niet bewezen. Op de nieuwe host — **kernel 6.12 tegenover 5.10**, cifs-utils 7.4 tegenover 6.11 — houden beide mounts `serverino` en blijven ze schrijfbaar, met een vers service-account. Twee dingen veranderden tegelijk (kernel én account), dus welke van beide de doorslag gaf is niet vastgesteld. De oude kernel is de waarschijnlijkste verdachte; de NAS zelf bleef de hele dag gezond en bediende ondertussen een andere share zonder klacht.
+
+**Nog vier bugs gevonden tijdens de migratie**, bovenop de negen van vanochtend — allemaal van dezelfde soort: code die werkte omdat de omgeving er toevallig naar gevormd was.
+
+| # | Fout | Gevolg |
+|---|---|---|
+| 10 | `main()` deed `mkdir "${LOG_DIR}"` vóór `load_config` | logmap werd met de ingebakken standaard aangemaakt; op een andere host meteen "Toegang geweigerd" |
+| 11 | rclone werd aangeroepen zonder `--config` | werkte onder systemd (`Environment=`) maar niet handmatig → "remote 'gdrive' not found" |
+| 12 | `cloud-backup.service` had `[Install] WantedBy=multi-user.target` | een `systemctl enable` zou bij élke boot een volledige backup starten |
+| 13 | `flock` als apt-pakket opgevoerd | bestaat niet in Debian; zit in `util-linux` |
+
+**How to apply (aangevuld)**: een script dat "al jaren werkt" op één host bevat vrijwel zeker aannames over die host. Verhuizen naar een rol legt ze één voor één bloot — reken daar tijd voor in, en leg elke aanname vast in plaats van hem alleen te repareren.
