@@ -1,6 +1,6 @@
 ---
 name: project-netxms-windows-agents
-description: "NetXMS-agent op de Windows-servers: 6 DC's van olvp.int (elk ander VLAN) + SRVV-TOEGANG-01 (Win10, Net2). 6 van 7 hebben al een oude agent. Aanpak: GPO-opstartscript op DC's i.p.v. Ansible (geen Tier-0-account in Semaphore); TOEGANG-01 manueel."
+description: "NetXMS-agent op de Windows-servers: 6 DC's van olvp.int (elk ander VLAN) + SRVV-TOEGANG-01 (Win10, Net2). 6 van 7 hebben al een oude agent. Stand 2026-09-17: klaar voor share + test op INFRA002. Aanpak: GPO-opstartscript op DC's i.p.v. Ansible (geen Tier-0-account in Semaphore); TOEGANG-01 manueel."
 metadata:
   type: project
 ---
@@ -24,4 +24,8 @@ metadata:
 
 **Beslissing (voorstel Claude, 2026-09-15; user corrigeerde feiten zonder bezwaar):** geen Ansible voor de DC's. Dat vraagt een Domain-Admin-account in de vault + Semaphore → 5985 op zes DC's = Semaphore wordt Tier 0 ([[feedback-service-accounts]]). In de plaats: **GPP Immediate Task (SYSTEM) op OU Domain Controllers** — niet een opstartscript, want DC's herstarten zelden; de taak draait bij elke policy-refresh. Script + installer + config in `\\olvp.int\NETLOGON\netxms`, idempotent (config-hash vergelijken, enkel installeren bij versieverschil, firewallregel 4700, service herstarten bij wijziging). SRVV-TOEGANG-01 manueel met hetzelfde script. Code: `platform-ansible/files/netxms/windows/` (`Install-NetXMSAgent.ps1`, `nxagentd.conf`), runbook **RB-2026-NETXMS-WINAGENT** (`deploy-netxms-agent-windows.md`), nog niet getest op een DC.
 
-**Open:** firewall M-005 uitbreiden met 10.33.0.10 + 192.168.1.10; nodes aanmaken in NetXMS; op één DC `C:\NetXMS\etc\nxagentd.conf` nakijken (wijst die naar 10.10.100.2?). Zie [[project-netxms-monitoring]], [[project-ad-serv01-migration]].
+**Stand 2026-09-17** (4700 getest vanaf 10.35.0.20): BSW001 (192.168.1.10) nu **open** → M-005-deel voor BSW001 is gebeurd. **SERV-01 (10.33.0.10) nog dicht** → UniFi M-005 uitbreiden + vermoedelijk geen agent (script maakt Windows-firewallregel zelf). Rest open zoals voorheen. `nxget` staat niet op monitoring; oude agents laten wellicht enkel 10.10.100.2 toe → agentversie niet remote uit te lezen.
+
+**Volgende stap (bij user):** runbook stap 2 (share `\\olvp.int\NETLOGON\netxms` vullen met installer 6.2.3 + script + conf) en stap 3 (manuele run op SRVV-INFRA002, 2× draaien). User plakt log, `C:\NetXMS\etc\` listing, inhoud oude `nxagentd.conf.bak-*` en service-naam → nakijken exitcode, oude server/subagents (geen metingen verliezen), installatiemap. Daarna GPO, TOEGANG-01, nodes in NetXMS, runbook + firewall-matrix (M-005-rij: BSW001 open) bijwerken. Let op: afgedwongen ExecutionPolicy (AllSigned via GPO) overschrijft `-ExecutionPolicy Bypass`.
+
+**Open:** firewall M-005 uitbreiden met 10.33.0.10; nodes aanmaken in NetXMS; oude config op een DC nakijken (wijst die naar 10.10.100.2?). Zie [[project-netxms-monitoring]], [[project-ad-serv01-migration]].
