@@ -78,3 +78,4 @@
 - [Teamdrive-backup storing sep 2026](project_teamdrive_backup_outage_202609.md) — 87 dagen stil (22/06-17/09), read-only CIFS-mount + 9 fouten; health-check mailde wel maar dat is geen alarm; rol cloud-backup lost alles op
 - [SRVV-P-BACKUP-01](project_srvv_p_backup_01.md) — Debian 13, Bacula 15 + Bacularis; doelhost voor de Teamdrive-backup; open: dubbele machine-id, Webmin op 0.0.0.0, Bacula alleen op localhost, VLAN-verhuizing naar 10.35.0.60
 - [UNAS 'local account' breekt SMB](feedback_unas_local_account_smb.md) — gebruiker met die optie krijgt geen SMB-toegang; mount error(13) terwijl wachtwoord klopt; test auth met smbclient -L
+- [Template-fouten op de hele vloot](project_template_fleet_defects.md) — golden image: 12 VM's delen dezelfde machine-id, en /var 2,9 GB tegenover een leeg /home van 27,5 GB; TPL-1/TPL-2
