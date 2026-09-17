@@ -52,3 +52,18 @@ De rol `cloud-backup` is uitgerold op [[project-srvv-p-backup-01]] en `--list-on
 | 13 | `flock` als apt-pakket opgevoerd | bestaat niet in Debian; zit in `util-linux` |
 
 **How to apply (aangevuld)**: een script dat "al jaren werkt" op één host bevat vrijwel zeker aannames over die host. Verhuizen naar een rol legt ze één voor één bloot — reken daar tijd voor in, en leg elke aanname vast in plaats van hem alleen te repareren.
+
+## Waar het morgen verder gaat (stand 2026-09-17 einde dag)
+
+De inhaalrun draait sinds 15:17 op `SRVV-P-BACKUP-01`. Controleren met drie getallen: afgeronde drives (doel 151), `read-only file system`-fouten (moet **0** blijven) en `df -h /var`.
+
+**Waarneming die de diagnose opnieuw bijstelt**: ook op kernel 6.12 raakte `CLBU-FULL` onderweg `serverino` kwijt — er is dus óók daar een reconnect geweest — maar de mount bleef schrijfbaar, nul fouten. Het verlies van `serverino` zegt dus alleen dát er een sessie is heropgebouwd, niet dat die degradeert. Mijn eerdere koppeling tussen die twee was te snel. Dat schuift de verdenking naar het oude account `bob.benny`, dat op de NAS in een rare staat bleek (het moest opnieuw aangemaakt worden, en een eerste poging strandde op [[feedback-unas-local-account-smb]]).
+
+**Open, in volgorde:**
+1. Run afwachten; pas na een **tweede** geslaagde run mag `SRVV-CLOUDBACKUP-01` weg.
+2. `netxms-agent.yml -e target_limit=srvv-p-backup-01` — zonder dat is er nog steeds geen alarm, alleen mail. Dat was de kern van deze storing.
+3. `/var` groeien (TPL-1), `apt clean`, en de 950 MB dode containerd-data.
+4. `svc-clbu-rw` terug van owner naar editor (least privilege).
+5. BU-6: `bob.benny` roteren, uit `/etc/fstab` van `.6`, en `svc-bacula-rw` + de USB-keten op `PC-MONITORING-01` meenemen.
+6. Vóór het opruimen van `.8`: de test `svc-clbu-rw` op kernel 5.10, en het oude service-account-token uit 2023 (`/opt/olvp-rclone-387510-*.json`) intrekken in de Google-admin.
+7. rclone is op de nieuwe host 1.60 (Debian) tegenover 1.73 op de oude — overwegen uit de officiële bron te halen en in de rol vast te leggen.

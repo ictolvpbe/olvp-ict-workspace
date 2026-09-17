@@ -27,4 +27,10 @@ Doelhost voor de geconsolideerde backup-rollen. Vastgesteld 2026-09-17 via read-
 7. **NAS-credentials in klare tekst in `/etc/fstab`**, mode 644, op naam van `bob.benny` — tracker BU-6, zie [[project-offline-backup-chain]].
 8. **VLAN-verhuizing naar `10.35.0.60`** (VLAN 35) staat al in `vm-inventory.md` gepland als `SRVV-BACULA-01`. Bewust **niet** samen met de backup-migratie uitgevoerd: twee wijzigingen tegelijk maken een storing onherleidbaar — de les van 22/06 ([[feedback-risk-aware-changes]]).
 
+**Stand 2026-09-17 einde dag**: rol `cloud-backup` uitgerold en werkend. Beide NAS-shares gemount via fstab met het nieuwe service-account `svc-clbu-rw`, timers ingeschakeld (backup 01:17, health 06:00/18:00), `--list-only` detecteert alle Shared Drives, en de eerste volledige inhaalrun draait sinds 15:17. Machine-id vernieuwd (`775701c0…`).
+
+**Opgelost sinds de eerste inventarisatie**: punt 1 (machine-id) en punt 7 (NAS-credentials — de cloud-backup-keten gebruikt nu `svc-clbu-rw` uit de vault; `bob.benny` staat nog wél in klare tekst in `/etc/fstab` voor de Bacula-mount, tracker BU-6).
+
+**Nieuw gevonden**: `/var` is maar 2,9 GB en stond op 79% — zie [[project-template-fleet-defects]], TPL-1. Online te groeien met `lvextend -r`, er staat 9,91 GB vrij in de VG.
+
 Ansible: groep `cloud_backup` in `inventory.yml`, playbook `cloud-backup.yml`, rol `roles/cloud-backup`.
