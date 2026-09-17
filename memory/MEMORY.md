@@ -75,3 +75,5 @@
 - [Offline backup-keten](project_offline_backup_chain.md) — NAS→USB 1,1 TB 2×/week op 3 roterende schijven; draaide ongedocumenteerd op het kiosk-toestel, verhuist naar PC-BACKUP-01 in VLAN 19; cloud-pull blijft aparte VM
 - [Same-subnet test bewijst niets](feedback_same_subnet_test_proves_nothing.md) — bij "onbereikbaar": test vanuit andere zone tegen een 2e host in het doelsubnet om firewall van eindtoestel te scheiden
 - [UniFi set-inform niet duurzaam](feedback_unifi_set_inform_not_persistent.md) — per-device set-inform reverteert bij elke provision (override_inform_host=False); enkel controller-side Override Inform Host houdt stand
+- [Teamdrive-backup storing sep 2026](project_teamdrive_backup_outage_202609.md) — 87 dagen stil (22/06-17/09), read-only CIFS-mount + 9 fouten; health-check mailde wel maar dat is geen alarm; rol cloud-backup lost alles op
+- [SRVV-P-BACKUP-01](project_srvv_p_backup_01.md) — Debian 13, Bacula 15 + Bacularis; doelhost voor de Teamdrive-backup; open: dubbele machine-id, Webmin op 0.0.0.0, Bacula alleen op localhost, VLAN-verhuizing naar 10.35.0.60
