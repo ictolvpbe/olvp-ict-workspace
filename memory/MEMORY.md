@@ -13,7 +13,7 @@
 - [MCP + ITSM strategie](project_mcp_and_itsm.md) — Project G (MCP-deploy) + Project H (Odoo PM/ITSM-migratie); Claude-updates via MCP als doel, Odoo wordt single-source-of-truth na Fase 5
 - [VCS-strategie](project_vcs_strategy.md) — GitHub (private) tijdelijk; migreren naar Forgejo wanneer Forgejo-stack opgeleverd is
 - [Client-identity op netwerk](project_client_identity.md) — 802.1X+dynamic-VLAN werkt al via NPS; FreeRADIUS als doel; tier-ladder voor NXfilter↔RADIUS-correlatie
-- [Security testing-strategie](project_security_testing.md) — 5-cyclus plan, Defender Attack Simulator (M365 A5) i.p.v. GoPhish, VLAN 38 voor zelf-pen-test
+- [Security testing-strategie](project_security_testing.md) — 5-cyclus plan, GoPhish gehardend (Defender Attack Simulator NIET bruikbaar: personeel zit op Google Workspace, geen EXO-mailboxen), VLAN 38 voor zelf-pen-test
 - [Containerization](project_containerization.md) — Podman als default-runtime (ADR 0004), Odoo Docker→Podman migratie gepland, Portainer uit te faseren
 - [Service-accounts](feedback_service_accounts.md) — `ansible` voor automation op alle stack-VMs, persoonsgebonden accounts voor interactief
 - [Firewall-strategie](project_firewall_strategy.md) — 14 UniFi-zones bewust geconsolideerd; intra-zone-deny + per-VLAN-isolation; gotcha 'Retourverkeer Automatisch Toestaan' verplicht op inter-zone allows
@@ -79,3 +79,4 @@
 - [SRVV-P-BACKUP-01](project_srvv_p_backup_01.md) — Debian 13, Bacula 15 + Bacularis; doelhost voor de Teamdrive-backup; open: dubbele machine-id, Webmin op 0.0.0.0, Bacula alleen op localhost, VLAN-verhuizing naar 10.35.0.60
 - [UNAS 'local account' breekt SMB](feedback_unas_local_account_smb.md) — gebruiker met die optie krijgt geen SMB-toegang; mount error(13) terwijl wachtwoord klopt; test auth met smbclient -L
 - [Template-fouten op de hele vloot](project_template_fleet_defects.md) — golden image: 12 VM's delen dezelfde machine-id, en /var 2,9 GB tegenover een leeg /home van 27,5 GB; TPL-1/TPL-2
+- [Euro-Office + Nextcloud/OpenCloud](project_eurooffice_nextcloud.md) — EU-fork van ONLYOFFICE, publieke testserver met twee sporen (Nextcloud + OpenCloud, gedeelde document-server); ontwerp+runbook klaar, niets gebouwd
