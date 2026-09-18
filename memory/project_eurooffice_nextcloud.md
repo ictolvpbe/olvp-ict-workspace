@@ -65,9 +65,12 @@ hercontroleren** en noteren in de wijzigingslog van de runbook. Blijft hij op 20
   backend, Go/TypeScript, open source. FOSDEM 2026-talk, werk loopt.
 - **Video/chat: 🚧 roadmap** — **OpenTalk** wordt geïntegreerd; zelfde moederbedrijf (Heinlein Group).
 - **Deck: ❌** geen equivalent; ecosysteem-antwoord = **OpenProject** als aparte app.
-- ⚠️ **Open vraag:** de groupware-module wordt aangekondigd "voor bedrijven, providers en publieke
-  sector" — of hij ook in de **community-editie** landt is **niet bevestigd**. Uitzoeken vóór er
-  schoolbrede verwachtingen op gebouwd worden.
+- ✅ **Editie-vraag BEANTWOORD (user, 2026-09-18):** de gratis **Community Edition bevat de volledige
+  functionele basis, groupware inbegrepen**. Enterprise onderscheidt zich op geavanceerde
+  beheerdersfuncties, schaalbaarheidsgaranties, enterprise rechtenbeheer en professionele support —
+  niet op eindgebruikersfunctionaliteit. Het persbericht ("voor bedrijven, providers en publieke
+  sector") wekt ten onrechte de indruk dat het betalend wordt. ⚠️ Deze bevestiging komt van de user,
+  niet uit een publieke bron die wij terugvonden — hercontroleren bij de effectieve release.
 
 **Alternatief-patroon = openDesk** (ZenDiS, Duitse overheids-GmbH, v1.0 okt 2024): best-of-breed
 achter één IdP i.p.v. één monoliet — Nextcloud (files) + Collabora (office) + Open-Xchange
