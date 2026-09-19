@@ -80,3 +80,5 @@
 - [UNAS 'local account' breekt SMB](feedback_unas_local_account_smb.md) — gebruiker met die optie krijgt geen SMB-toegang; mount error(13) terwijl wachtwoord klopt; test auth met smbclient -L
 - [Template-fouten op de hele vloot](project_template_fleet_defects.md) — golden image: 12 VM's delen dezelfde machine-id, en /var 2,9 GB tegenover een leeg /home van 27,5 GB; TPL-1/TPL-2
 - [Euro-Office + Nextcloud/OpenCloud](project_eurooffice_nextcloud.md) — EU-fork van ONLYOFFICE, publieke testserver met twee sporen (Nextcloud + OpenCloud, gedeelde document-server); ontwerp+runbook klaar, niets gebouwd
+- [Bacula xattr bij database-loze stores](feedback_bacula_xattr_databaseless.md) — `xattrsupport = yes` staat niet standaard aan; zonder die optie groene backup maar restore zonder shares/versies
+- [Memory cross-checken tegen de repo](feedback_verify_memory_against_repo.md) — memory-regels kunnen fout zijn (index sprak eigen bestand tegen); grep het handbook vóór je op een afgeleid feit voortbouwt
