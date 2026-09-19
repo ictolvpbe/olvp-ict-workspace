@@ -40,7 +40,7 @@ olvp-ict/
 - Branch: `main` op beide repo's (geen Dev/master conventie hier — die is voor MySchool_addons)
 - Commits in Nederlands, imperatief ("voeg X toe")
 - Eerste regel ≤ 72 chars + optioneel body met "why"
-- Co-author line `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` toevoegen bij Claude-commits
+- Co-author line `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` toevoegen bij Claude-commits (schrijf het model van de sessie; bij een variant hoort die erbij, bv. `Claude Opus 5 (1M context)`)
 
 ### Ansible
 - `ansible-user` op alle stack-VMs met NOPASSWD sudo (zie `hosting/operations/provision-ansible-account.md`)
