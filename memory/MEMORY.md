@@ -78,7 +78,7 @@
 - [Teamdrive-backup storing sep 2026](project_teamdrive_backup_outage_202609.md) — 87 dagen stil (22/06-17/09), read-only CIFS-mount + 9 fouten; health-check mailde wel maar dat is geen alarm; rol cloud-backup lost alles op
 - [SRVV-P-BACKUP-01](project_srvv_p_backup_01.md) — Debian 13, Bacula 15 + Bacularis; doelhost voor de Teamdrive-backup; open: dubbele machine-id, Webmin op 0.0.0.0, Bacula alleen op localhost, VLAN-verhuizing naar 10.35.0.60
 - [UNAS 'local account' breekt SMB](feedback_unas_local_account_smb.md) — gebruiker met die optie krijgt geen SMB-toegang; mount error(13) terwijl wachtwoord klopt; test auth met smbclient -L
-- [Template-fouten op de hele vloot](project_template_fleet_defects.md) — golden image: 12 VM's delen dezelfde machine-id, en /var 2,9 GB tegenover een leeg /home van 27,5 GB; TPL-1/TPL-2
+- [Template-fouten op de hele vloot](project_template_fleet_defects.md) — TPL-1/TPL-2: 12 VM's delen dezelfde machine-id + scheve /var-//home-verhouding; runbook RB-2026-TPL-BASELINE klaar (niet uitgevoerd); vloot NIET uniform; cloud-init-werf als open ontwerpvraag; ▶ master-VM 10.200.0.40 eerst controleren
 - [Euro-Office + Nextcloud/OpenCloud](project_eurooffice_nextcloud.md) — EU-fork van ONLYOFFICE, publieke testserver met twee sporen (Nextcloud + OpenCloud, gedeelde document-server); ontwerp+runbook klaar, niets gebouwd
 - [Bacula xattr bij database-loze stores](feedback_bacula_xattr_databaseless.md) — `xattrsupport = yes` staat niet standaard aan; zonder die optie groene backup maar restore zonder shares/versies
 - [Memory cross-checken tegen de repo](feedback_verify_memory_against_repo.md) — memory-regels kunnen fout zijn (index sprak eigen bestand tegen); grep het handbook vóór je op een afgeleid feit voortbouwt
