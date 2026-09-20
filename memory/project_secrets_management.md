@@ -49,6 +49,18 @@ OLVP secrets-management-strategie (beslist 2026-05-24):
 - Bij Vaultwarden-deploy later: migratie-werf documenteren in `management-tools/vaultwarden.md`
 - Periodieke backup KeePassXC `.kdbx`-file: encrypted USB op veilige plek (niet alleen werkstation)
 
+## ▶ Open: `.kdbx` naar een externe disk (user, 2026-09-20)
+
+Voornemen om de KeePassXC-database niet meer op het werkstation zelf te bewaren maar op een
+externe disk. Past bij [[project-it-workstation-hardening]] — het werkstation draagt vandaag de
+`.kdbx`, de ansible-key én het vault-wachtwoord, en is daarmee het waardevolste doelwit van de
+hele infrastructuur.
+
+Nog te beslissen: welke disk en of hij versleuteld is (LULS-USB zoals de step-ca-root?), hoeveel
+kopieën en waar, en wat er gebeurt als de disk niet aangesloten is — de `.kdbx` wordt de hele dag
+gebruikt, dus dagelijkse bruikbaarheid en air-gap trekken hier aan elkaar. Eén disk is bovendien
+een single point of failure bovenop een bestand dat bij verlies onherstelbaar is (zie hieronder).
+
 **Risico: KeePassXC-bestand verloren**
 - Mitigatie: backup-procedure (kwartaalbasis), eventueel meerdere kopieën op verschillende media
 - KeePassXC zelf is local-only — vault-master-password verloren = onherstelbaar
