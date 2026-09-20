@@ -20,7 +20,22 @@ Niet één scheve indeling maar **twee**, en elke generatie maakt dezelfde fout 
 bij de ene komt de ruimte uit `/home`, bij de andere uit `/opt`. Zie
 [[feedback-verify-memory-against-repo]].
 
-## De baseline-VM: 10.10.200.1, géén verse installatie
+## De baseline-VM: VMID 516, géén verse installatie
+
+**In Proxmox:** VMID **516**, naam `DEB13-PODMAN-TEMPLATE`, node `srv-pmclust-p01`, 100 G op `rdb`.
+Snapshot `pre-diskfix-2026-09-20` gemaakt op 2026-09-20 — daarvóór was er géén enkel rollback-punt.
+Staat in `inventory.yml` als groep `baseline_vm`. Voorganger `WEG-SRVV-ODOO-TEMPLATE` (VMID 10082,
+p02) is gestopt en teruggetrokken.
+
+**Vorm:** bewust een gewone VM met snapshots, géén Proxmox-template-object — een template kun je
+niet starten, en dan is elke bijwerkronde klonen → aanpassen → opnieuw converteren.
+
+⚠️ **Afsluiten met `/usr/local/sbin/olvp-seal-template.sh --seal`**, nooit met een kale `shutdown`.
+Het script ruimt op, wist de host-sleutels, maakt de machine-id leeg en sluit in dezelfde handeling
+af; het weigert op elke andere host via een SMBIOS-UUID-grendel. Bron:
+`platform-ansible/files/olvp-seal-template.sh`. Zie [[feedback-proxmox-clone-identiteit]].
+
+## Gemeten indeling
 
 `SRVV-DEBIAN-TEMPL` op **10.10.200.1** vervangt het teruggetrokken `SRVV-ODOO-TEMPLATE`
 ([[project-template-strategy]]). Gemeten: schijf 100 GB, `/` 7,72 · `/opt` **63,25** (268 K in
