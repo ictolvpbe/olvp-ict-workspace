@@ -41,6 +41,22 @@ host uit de play en claimt het bestand niets.
   me de markering; vervangen door `when`-condities.
 - Leestaken hebben `check_mode: false` nodig, anders is `--check` onbruikbaar.
 
+## Waarom `step-ca-trust` vlootbreed ontbrak
+
+`step ca bootstrap` zet de root alleen in `/root/.step`. De **systeem-truststore** is een aparte
+stap, en die ontbrak in het playbook — `group_vars` had `step_ca_root_cert_path` al, maar geen
+enkele taak gebruikte hem. Gedicht 2026-09-20. Dat verklaart de vijf hosts hieronder waar step
+gewoon werkt maar de sleutel toch niet waar was.
+
+## Twee valkuilen bij het lezen van de markering
+
+- `ansible_local` is deprecated (verdwijnt in ansible-core 2.24) → `ansible_facts['local']`. Maar:
+  een **mid-play `setup`** ververst wél de geïnjecteerde variabele en **niet**
+  `ansible_facts['local']` in dezelfde run. Rapporteer daarom wat je zojuist wegschreef, niet een
+  herlezing.
+- De baseline-VM zelf haalt nooit de volle versie: `machine-id-unique` kan op een geseald template
+  niet waar zijn. Promotie hoort op de kloon te gebeuren.
+
 ## Stand van de vloot (2026-09-19, 12 hosts gemeten)
 
 | Sleutel | Ontbreekt op |

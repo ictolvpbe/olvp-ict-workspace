@@ -35,6 +35,23 @@ Het script ruimt op, wist de host-sleutels, maakt de machine-id leeg en sluit in
 af; het weigert op elke andere host via een SMBIOS-UUID-grendel. Bron:
 `platform-ansible/files/olvp-seal-template.sh`. Zie [[feedback-proxmox-clone-identiteit]].
 
+## ▶ Stand baseline-VM na 2026-09-20: fase 1–6 klaar
+
+Uitgevoerd op VMID 516. `/opt` 63,25 → **2 G**, `/` → 15 G, `/var` → 20 G, `/tmp` → 2 G, `/srv`
+nieuw op 5 G (fstab op UUID), **46,57 G vrij** in de VG. Krimp over twee PV's zonder `pvmove`;
+herstart bracht alle zeven volumes correct op. `tier1-baseline.yml --limit baseline_vm` zette
+log-hygiene, logrotate-cap en de step-ca-root.
+
+Markering: `baseline_version: "0"`, generatie `baseline`, **zes van de zeven** sleutels.
+
+**De baseline bereikt nooit `13.1`, en dat is correct**: op een geseald template is de machine-id
+juist leeg, dus `machine-id-unique` kan daar niet waar zijn. De promotie gebeurt op de kloon, bij
+diens eerste `tier1-baseline`-run.
+
+**Nog te doen:** fase 7 sealen (`olvp-seal-template.sh --seal`), fase 8 snapshot
+`Tier1-baseline-2026-09-20` + wegwerpkloon als bewijs. Fase 9 — de elf bestaande hosts — is nog
+volledig open.
+
 ## Gemeten indeling
 
 `SRVV-DEBIAN-TEMPL` op **10.10.200.1** vervangt het teruggetrokken `SRVV-ODOO-TEMPLATE`
