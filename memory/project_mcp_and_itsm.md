@@ -1,9 +1,19 @@
 ---
 name: project-mcp-and-itsm
-description: MCP-service en Odoo ITSM/PM-migratie zijn strategische Projecten G en H — doel is Claude-gestuurde updates van Odoo + governance-tracking in Odoo i.p.v. git/Sheets.
+description: "MCP-service en Odoo ITSM/PM-migratie als Projecten G en H. ⚠️ MOGELIJK ACHTERHAALD: programma bijgestuurd de voorbije weken (user, 2026-09-20), en een Frappe-platform met MCP voor projectopvolging overlapt met Project H. Verifieer vóór gebruik."
 metadata:
   type: project
 ---
+
+> ⚠️ **Mogelijk achterhaald — verifiëren vóór gebruik (gemeld door user, 2026-09-20).** Er is de
+> voorbije weken "één en ander bijgestuurd" aan het programma; wat precies is niet vastgelegd.
+> Bijkomend signaal: er komt een **Frappe-platform** (vier servers) waarvan één live door de
+> IT-dienst gebruikt wordt voor projectopvolging, met MCP-toegang — functioneel hetzelfde doel als
+> Project H hieronder. Open vraag: wordt Frappe de governance-SoT en wordt H omgelegd, of blijven
+> Odoo en Frappe naast elkaar bestaan (en vervalt "single source of truth")?
+>
+> Vraag dit na bij de user en check `governance/programma-structuur.md` vóór je op onderstaande
+> tekst voortbouwt. Zie [[feedback-verify-memory-against-repo]].
 
 Sinds 2026-05-21 zijn Project G (MCP) en Project H (Odoo PM/ITSM-migratie) toegevoegd aan de programma-structuur — strategisch doel: Claude moet rechtstreeks via MCP Odoo kunnen updaten en governance-tracking gebeurt op termijn in Odoo i.p.v. git/Sheets.
 

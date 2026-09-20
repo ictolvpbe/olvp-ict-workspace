@@ -10,7 +10,7 @@
 - [Programma-structuur](project_programma_structuur.md) — 6 deelprojecten + governance-laag sinds 2026-05-21, 15 hard gates voor A-go-live
 - [Bus-factor](project_bus_factor.md) — collega in opleiding als secundaire admin; workforce-track in governance
 - [Review-aanvragen](feedback_review_aanvraag.md) — bij expert-review: grondige extractie eerst, eerlijke gap-analyse, strategische aanbevelingen
-- [MCP + ITSM strategie](project_mcp_and_itsm.md) — Project G (MCP-deploy) + Project H (Odoo PM/ITSM-migratie); Claude-updates via MCP als doel, Odoo wordt single-source-of-truth na Fase 5
+- [MCP + ITSM strategie](project_mcp_and_itsm.md) — Project G (MCP-deploy) + Project H (Odoo PM/ITSM-migratie). ⚠️ mogelijk achterhaald: programma bijgestuurd + Frappe-spoor overlapt; eerst verifiëren
 - [VCS-strategie](project_vcs_strategy.md) — GitHub (private) tijdelijk; migreren naar Forgejo wanneer Forgejo-stack opgeleverd is
 - [Client-identity op netwerk](project_client_identity.md) — 802.1X+dynamic-VLAN werkt al via NPS; FreeRADIUS als doel; tier-ladder voor NXfilter↔RADIUS-correlatie
 - [Security testing-strategie](project_security_testing.md) — 5-cyclus plan, GoPhish gehardend (Defender Attack Simulator NIET bruikbaar: personeel zit op Google Workspace, geen EXO-mailboxen), VLAN 38 voor zelf-pen-test
@@ -85,3 +85,4 @@
 - [Baseline-versiemarkering](project_baseline_versiemarkering.md) — /etc/olvp/baseline.json als Ansible-fact (ADR 0009); bewijs-gestuurd, geïmplementeerd en vlootbreed gedraaid; werklijst per host
 - [Managementsegmentatie VLAN 30](project_mgmt_segmentatie_vlan30.md) — beheerinterfaces naar VLAN 30, alleen vanaf VLAN 34; geblokkeerd door Ceph public_network op VLAN 10 → eerst naar VLAN 8 VL-CEPH-PUBNET
 - [Proxmox-kloon en identiteit](feedback_proxmox_clone_identiteit.md) — kloon/template vernieuwt MAC en smbios-uuid maar kopieert machine-id en SSH-host-sleutels mee; leegmaken en afsluiten in één handeling
+- [Frappe-platform (nieuw spoor)](project_frappe_platform.md) — 4 servers, waarvan 1 live voor IT-projectopvolging met MCP; nog niets gebouwd, ADR + runbook te schrijven
