@@ -1,23 +1,39 @@
 ---
 name: project-template-fleet-defects
-description: "Twee fouten in het golden image op alle 12 klonen: /etc/machine-id niet leeggemaakt en een scheve partitie-indeling. Runbook RB-2026-TPL-BASELINE klaar 2026-09-19 (nog niet uitgevoerd). LET OP: de vloot blijkt NIET uniform — twee verschillende indelingen gedocumenteerd. Tracker TPL-1/TPL-2."
+description: "TPL-1/TPL-2 in het golden image: gedeelde machine-id en een scheve partitie-indeling. Vloot gemeten 2026-09-20 — TWEE template-generaties (5 legacy-home / 7 legacy-opt), niemand op baseline. ADR 0008 (dun image + profiel), ADR 0009 (versiemarkering, geïmplementeerd). Runbook RB-2026-TPL-BASELINE klaar, nog niet uitgevoerd."
 metadata:
   type: project
 ---
 
 Vastgesteld 2026-09-17 tijdens de Teamdrive-backup-migratie ([[project-teamdrive-backup-outage-202609]]). Beide fouten komen uit het golden image van [[project-template-strategy]] en zijn dus twaalf keer uitgerold.
 
-## ⚠️ De vloot is niet uniform (vastgesteld 2026-09-19)
+## De vloot heeft twee generaties (gemeten 2026-09-20)
 
-De cijfers hieronder komen van **één meting op `SRVV-P-BACKUP-01`**. Het handbook spreekt ze deels
-tegen: `hosting/operations/deploy-netxms.md:121` documenteert voor `SRVV-MONITORING-01` een schijf
-van **200 GB** met `/` 7,6 G, `/var` **12 G**, `/opt` **62 G** en ongeveer de helft ongepartitioneerd
-— tegenover 49,5 GB / `/var` 2,9 G / `/home` 27,5 G op P-BACKUP-01. Beide heten Tier-1-klonen.
+Niet één scheve indeling maar **twee**, en elke generatie maakt dezelfde fout op een andere map:
 
-Óf het image is onderweg gewijzigd, óf niet elke VM komt eruit voort. **Niet uitgezocht.** Dus:
-behandel elk getal in deze memory als voorbeeld, niet als vaststelling, en meet per host vóór je
-iets wijzigt. Zie [[feedback-verify-memory-against-repo]] — dit is precies dezelfde soort fout,
-nu in mijn eigen memory.
+| Generatie | Kenmerk | Hosts |
+|---|---|---|
+| `legacy-home` | `/home` 27,5 G (leeg), `/var` 2,9 G | haproxy-1, haproxy-2, sspr-01, unifi-01, p-backup-01 |
+| `legacy-opt` | `/opt` 63 G (leeg), `/var` 12 G | forgejo-01, id-01, monitoring-01, tst-odoo-01, dev-odoo-01, srvv-odoo-01, srvv-acc-01 |
+
+**Geen enkele host staat op de baseline.** Meet dus altijd eerst welke generatie je voor je hebt —
+bij de ene komt de ruimte uit `/home`, bij de andere uit `/opt`. Zie
+[[feedback-verify-memory-against-repo]].
+
+## De baseline-VM: 10.10.200.1, géén verse installatie
+
+`SRVV-DEBIAN-TEMPL` op **10.10.200.1** vervangt het teruggetrokken `SRVV-ODOO-TEMPLATE`
+([[project-template-strategy]]). Gemeten: schijf 100 GB, `/` 7,72 · `/opt` **63,25** (268 K in
+gebruik) · `/var` 12 · `/home` 8 · `/tmp` 0,58 · VG vrij 7,03. Zelfde `machine-id` als de hele
+vloot en `/lost+found` uit 2023 — het is dus **dezelfde afstamming**, geen schone start. Wel al
+rolneutraal: het Odoo-skelet is eruit.
+
+Gevolg voor het runbook: de ruimte komt van **`/opt`**, niet van `/home`. En de VG-naam blijft
+`SRVV-DEBIAN-TEMPL-vg` — hernoemen naar `vg0` is ingetrokken omdat `/etc/fstab` op device-pad
+mount (alleen `/boot` op UUID), dus `vgrename` zou de boot breken.
+
+Het image mist ook het **step-ca root-cert** en het log-hygiene-filter, terwijl de
+template-strategie beide als aanwezig beschreef. `tier1-baseline.yml` zet ze wel.
 
 ## TPL-1 — `/var` te klein, `/home` te groot
 

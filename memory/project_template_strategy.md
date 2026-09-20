@@ -5,6 +5,15 @@ metadata:
   type: project
 ---
 
+> ⚠️ **Achterhaald op één punt sinds 2026-09-19.** `SRVV-ODOO-TEMPLATE` (10.200.0.40) is
+> **teruggetrokken** — het dateert uit de periode waarin alleen Odoo-servers in scope stonden.
+> Opvolger is de rolneutrale baseline-VM `SRVV-DEBIAN-TEMPL` op **10.10.200.1**. Het uitgangspunt
+> "één golden image, applicatie-overlay via Ansible" blijft; wat verandert is de schijfindeling
+> (ADR 0008: dun image + profiel bij initialisatie) en dat er nu een versiemarkering op elke host
+> staat (ADR 0009). Zie [[project-template-fleet-defects]].
+>
+> Het oude image blijft bestaan tot de elf eruit geklonede hosts gesaneerd zijn.
+
 **Beslissing 2026-06-01**: alle nieuwe OLVP-VMs (mgmt + webapps) clones van **één** Tier 1 baseline-template, daarna app-specifieke overlay via Ansible. Geen tweede template per applicatie.
 
 **Why:** zonder gedeelde baseline kruipt configuratie-drift in tussen VMs (verschillende Podman-versies, certs niet up-to-date, ansible-user-config-edge-cases). Eén template = één onderhouds-pad. Plus: Forgejo, MCP, en toekomstige mgmt-VMs hebben **dezelfde** basis-stack (Podman + step + Ansible) — duplicatie van templates voor Odoo vs niet-Odoo loont niet voor onze schaal.
