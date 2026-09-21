@@ -1,6 +1,6 @@
 ---
-name: project-melira-frappe-hosting
-description: "FRAME = Melira (8 eigen Frappe v16-apps) op de OLVP-stack, model B bench-per-env/site-per-tenant met Podman-Quadlet. Vier omgevingen dev/test/acc/acc-test (beslist 2026-09-21) plus de kále Frappe SRVV-FRAPPE-02 als naam-uitzondering. Fase 0 bewezen, Fase 1 geschreven maar nooit e2e; code teruggehaald uit gesloten PR #1."
+name: project-frame-frappe-hosting
+description: "FRAME = de werfnaam voor het Frappe-spoor bij OLVP (8 eigen Frappe v16-apps van de leverancier) op de OLVP-stack, model B bench-per-env/site-per-tenant met Podman-Quadlet. Vier omgevingen dev/test/acc/acc-test (beslist 2026-09-21) plus de kále Frappe SRVV-FRAPPE-02 als naam-uitzondering. Fase 0 bewezen, Fase 1 geschreven maar nooit e2e; code teruggehaald uit gesloten PR #1."
 metadata:
   type: project
 ---
@@ -12,9 +12,10 @@ caddy, app-updates). Die map is het **ontwerpregister**; de uitvoerende code hoo
 
 ## Wat het is
 
-Melira = **8 eigen Frappe v16-apps** op GitLab (`git@gitlab.com:melira/core/*`, privé, SSH-only),
-met `melira_core` als verplichte basis voor alle andere. Bestuursbeslissing B3 (2026-07-04):
-**MySchool blijft Odoo**, Melira wordt greenfield Frappe. Gehost achter dezelfde
+FRAME is de OLVP-werfnaam voor dit spoor. De leverancier levert **8 eigen Frappe v16-apps** op
+GitLab (`git@gitlab.com:melira/core/*`, privé, SSH-only), met `melira_core` als verplichte basis
+voor alle andere — die repo- en modulenamen zijn feiten over andermans systeem en blijven dus
+staan. Bestuursbeslissing B3 (2026-07-04): **MySchool blijft Odoo**, dit wordt greenfield Frappe. Gehost achter dezelfde
 HAProxy→Caddy→step-ca-keten als Odoo.
 
 **Model B** (beslist 2026-07-08): één **bench** per omgeving, meerdere **sites** per bench.
@@ -47,7 +48,9 @@ Vier omgevingen, gespiegeld op [[project-intranet-hosting]]. Blootstelling volgt
 meer voor projectbeheer met `melira_projects`. Acc-test is het voorportaal op het test-kanaal.
 Exact het intranet-patroon. **Accountbeheer blijft tot nader order in intranet.**
 
-**Naamregel:** noch `melira` noch `frappe` in server-namen of FQDN's — beide worden `frame`.
+**Naamregel:** noch de productnaam noch `frappe` in server-namen of FQDN's — beide worden `frame`.
+Bevestigd 2026-09-21: in code, Podman-namen en mapnamen mág de productnaam blijven staan; FQDN's
+niet.
 `SRVV-FRAPPE-02` (kále Frappe met ERPNext-stack, eigen image, bestaat al als VMID 401) is een
 bewuste uitzondering en behoudt haar naam. Daardoor blijft `frame.olvp.be` vrij voor de latere
 publieke productieserver.
