@@ -35,7 +35,7 @@ Het script ruimt op, wist de host-sleutels, maakt de machine-id leeg en sluit in
 af; het weigert op elke andere host via een SMBIOS-UUID-grendel. Bron:
 `platform-ansible/files/olvp-seal-template.sh`. Zie [[feedback-proxmox-clone-identiteit]].
 
-## ▶ Stand baseline-VM na 2026-09-20: fase 1–6 klaar
+## ✅ Baseline-VM klaar (2026-09-21): fase 1–8 afgerond
 
 Uitgevoerd op VMID 516. `/opt` 63,25 → **2 G**, `/` → 15 G, `/var` → 20 G, `/tmp` → 2 G, `/srv`
 nieuw op 5 G (fstab op UUID), **46,57 G vrij** in de VG. Krimp over twee PV's zonder `pvmove`;
@@ -48,9 +48,23 @@ Markering: `baseline_version: "0"`, generatie `baseline`, **zes van de zeven** s
 juist leeg, dus `machine-id-unique` kan daar niet waar zijn. De promotie gebeurt op de kloon, bij
 diens eerste `tier1-baseline`-run.
 
-**Nog te doen:** fase 7 sealen (`olvp-seal-template.sh --seal`), fase 8 snapshot
-`Tier1-baseline-2026-09-20` + wegwerpkloon als bewijs. Fase 9 — de elf bestaande hosts — is nog
-volledig open.
+**Geseald en bewezen op 2026-09-21.** Snapshot `Tier1-baseline-2026-09-21` staat op de
+uitgeschakelde VM. Wegwerpkloon (VMID 9516, intussen vernietigd) toonde: uniek machine-id, opnieuw
+aangemaakte SSH-host-sleutels, werkende aanmelding met de bestaande sleutel, correcte indeling,
+markering mee gekloond, en **alle zeven sleutels vervuld** — de promotie naar `13.1` is daarmee
+aantoonbaar (bewust niet gedraaid).
+
+**De baseline is dus klaar om uit te klonen.** Eerste afnemer wordt het Frappe-platform
+([[project-frappe-platform]], vier VM's).
+
+**Twee dingen om te onthouden bij het klonen:**
+1. De nieuwe machine-id is exact de **SMBIOS-UUID zonder streepjes** — systemd leidt hem in een VM
+   af uit de DMI-UUID. Uniciteit komt dus van de hypervisor, niet van toeval.
+2. Een kloon erft de **statische IP-configuratie** van het template en komt dus op `10.10.200.1`
+   te staan, waar de inventorygroep `baseline_vm` naar wijst. Zet hostname en adres meteen na de
+   eerste boot, of laat geen kloon rondslingeren. Argument voor de cloud-init-werf.
+
+**Fase 9 — de elf bestaande hosts — is nog volledig open.**
 
 ## Gemeten indeling
 
