@@ -106,8 +106,22 @@ de role, niet de apps-laag. Geen GitLab-sleutel nodig. Overgezet met
 `docker save | ssh 'sudo podman load'` — **let op die `sudo`**: Quadlet-units zijn
 systeem-units en gebruiken de rootful store, niet die van de ansible-gebruiker.
 
-Volgende stap: de apps-volume + deploy-key uit `frappe/decisions/0001`, daarna
-test, acc en acc-test.
+## ▶ Volgende stappen (stand einde 2026-09-21)
+
+1. **Idempotentie-check verscherpen** — kijkt nu naar `site_config.json`, dat vóór de database
+   geschreven wordt; een half mislukte run wordt daardoor overgeslagen. Beter: check op de database
+   of op een marker die pas ná `bench new-site` komt.
+2. **Apps-laag** volgens `frappe/decisions/0001`: apps-volume per bench, read-only GitLab-deploykey
+   op de VM, `get-app` op de channel-branch. Dan pas draait FRAME met de echte Melira-apps; nu
+   draait dev op een runtime-only image met een lege app-lijst.
+3. **Caddy-edge** (`caddy-frappe.yml`) — nooit gedraaid. Initieel cert per FQDN blijft handwerk met
+   de step-ca admin-provisioner; de playbook faalt met instructie als het cert ontbreekt.
+4. **DNS** voor de vier FQDN's, en HAProxy voor de twee publieke.
+5. **test, acc en acc-test** uitrollen zodra dev met apps draait.
+6. **Vloot-inventaris**: de vier VM's staan nog niet in `hosting/reference/vm-inventory.md`.
+
+**PR #2** (`melira-frappe-fase1` → `main`) staat open met elf commits en bevat óók de twee
+frappe-vault-sleutels. Nog niet gemerged.
 
 ## Vijf vertaalfouten compose → Quadlet (alle gedicht)
 

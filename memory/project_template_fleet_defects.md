@@ -54,7 +54,15 @@ aangemaakte SSH-host-sleutels, werkende aanmelding met de bestaande sleutel, cor
 markering mee gekloond, en **alle zeven sleutels vervuld** — de promotie naar `13.1` is daarmee
 aantoonbaar (bewust niet gedraaid).
 
-**De baseline is dus klaar om uit te klonen.** Eerste afnemer wordt het Frappe-platform
+**De baseline is bewezen in de praktijk (2026-09-21).** Vier FRAME-VM's uit deze baseline gekloond
+(10050, 10051, 224, 225): elk een eigen machine-id, `/srv` gemount, geen gefaalde units, en alle
+vier naar `13.1` gepromoveerd door `tier1-baseline.yml`. TPL-2 is daarmee structureel opgelost voor
+nieuwe VM's — de elf bestaande hosts blijven open (fase 9).
+
+⚠️ **Klonen kost per stuk een volledige kopie van 100 GiB** op Ceph, ook al is er maar ~10 GiB in
+gebruik: `qm clone --full` kopieert de gealloceerde grootte. Reken op enkele minuten per kloon.
+
+Eerste afnemer was het Frappe-platform
 ([[project-frappe-platform]], vier VM's).
 
 **Twee dingen om te onthouden bij het klonen:**
