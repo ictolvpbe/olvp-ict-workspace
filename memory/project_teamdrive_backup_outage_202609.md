@@ -67,3 +67,29 @@ De inhaalrun draait sinds 15:17 op `SRVV-P-BACKUP-01`. Controleren met drie geta
 5. BU-6: `bob.benny` roteren, uit `/etc/fstab` van `.6`, en `svc-bacula-rw` + de USB-keten op `PC-MONITORING-01` meenemen.
 6. Vóór het opruimen van `.8`: de test `svc-clbu-rw` op kernel 5.10, en het oude service-account-token uit 2023 (`/opt/olvp-rclone-387510-*.json`) intrekken in de Google-admin.
 7. rclone is op de nieuwe host 1.60 (Debian) tegenover 1.73 op de oude — overwegen uit de officiële bron te halen en in de rol vast te leggen.
+
+## Nacontrole 2026-09-21 — de keten draaide, maar meldde niets
+
+Vier dagen na de migratie nagekeken. De backup liep elke nacht, maar er was **geen enkele mail** aangekomen en er stond nog steeds geen alarm. Zes fouten erbij, bovenop de dertien van 17/09 — allemaal van dezelfde soort: code die werkte omdat de omgeving er toevallig naar gevormd was, plus twee die ik zelf introduceerde.
+
+| # | Fout | Gevolg |
+|---|---|---|
+| 14 | Rapportmail ging via `mpack`, dat in geen enkele pakketlijst stond | script logde "mpack not found" en ging door; sinds de uitrol nooit gemaild |
+| 15 | Exim4 stond als `dc_eximconfig_configtype='local'`, loopback-only, geen smarthost | post kon de host niet verlaten; `mainlog` had geen enkele afleveringspoging |
+| 16 | `health-check.sh` keek naar `teamdrive-backup.timer` en `/var/run/teamdrive-backup.lock` — de namen uit de handmatige opzet | twee keer per dag onterecht UNHEALTHY + een gefaalde unit |
+| 17 | 64 van de 153 drives elke nacht op FAIL door 2.613 `dangling shortcut`-fouten en macOS-rommel | `summary.failed` betekende niets meer, precies het mechanisme van juni |
+| 18 | `discover.conf` werd niet uitgerold → `discover-drives.py` stierf bij élke run op `PermissionError` | discovery draaide nooit; en omdat rclone **niet** impersoneert (`subject =` leeg) betekent dat: een nieuwe Shared Drive komt stil nooit in de backup |
+| 19 | `discover-drives.py --config` las altijd de standaardconfiguratie | een vlag die stil iets anders doet dan ze belooft |
+
+**Twee fouten van mezelf, gevonden doordat ik het getest heb.** De outbox-unit is `Type=oneshot`; systemd ruimde de cgroup op en legde daarmee het aflever-proces om dat `sendmail` had afgesplitst — exim logde de ontvangst en verder niets. En de nieuwe lock-controle riep na élke geslaagde run "stale lock", terwijl een flock-bestand nu juist hoort te blijven liggen. Beide opgelost (`sendmail -odf`, en flock zelf laten antwoorden).
+
+**Bewezen op 2026-09-21:** testrun `--drive ICT-INTRANET` = 251 MB in 15 s, 0 mislukt; mail afgeleverd bij `smtp-relay.gmail.com` met `250 2.0.0 OK` over TLS 1.3 (`CV=yes`); health-check exit 0; agent levert `hours/failed/drives/warned`.
+
+**Discovery-dry-run relativeert de zorg**: 154 drives via impersonation, 153 toegankelijk, alleen `SO-FOTO'S` buiten — en dat is een grens, geen storing. Er was dus geen stille achterstand; het risico gold de toekomst.
+
+**Mailketen**: Google Workspace SMTP-relay `smtp-relay.gmail.com::587`, **geen login — herkenning op het publieke IP** `91.183.159.250`. Afzender moet `@olvp.be` zijn (`dc_readhost` + `dc_hide_mailname`), anders weigert de relay. Let op IPv6: de allowlist is IPv4.
+
+Werk staat op branch `backup/cloud-backup-rapportage` in `platform-ansible` (8 commits), tracker **BU-7**. Twee commits wachten nog op een uitrol: de discovery-exclusie en de flock-fix.
+
+**How to apply.** Een keten die "draait" is niet hetzelfde als een keten die meldt. Controleer na elke uitrol drie dingen apart: draait de taak, klopt wat ze meet, en komt het signaal ergens aan. Alle zes fouten hierboven zaten in dat tweede en derde stuk. En bij een systemd-unit van het type oneshot: alles wat het script afsplitst sterft mee — post moet dus synchroon verstuurd worden, of door een aparte unit.
+
