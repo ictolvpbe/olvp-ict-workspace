@@ -66,6 +66,19 @@ worden op bench-niveau uit git gehaald op de branch van het kanaal), dus twee om
 geen twee sites in dezelfde bench zijn. Als twee benches op één host zou het 18 containers en twee
 MariaDB's worden — te krap op 8 GB.
 
+## Oude VM's opgeruimd (2026-09-21)
+
+`SRVV-FRAPPE-01` (400), `SRVV-DEV-FRAPPE-01` (10050) en `SRVV-TST-FRAPPE-01` (10051) zijn
+**verwijderd** — opnieuw klonen uit de geseald baseline is sneller dan ze bijwerken.
+`SRVV-FRAPPE-02` (401, kále Frappe) **blijft bestaan**.
+
+10050 en 10051 hadden elk vier backups in `PROXMO_BU`; **400 had er geen enkele**, dus daar is
+vooraf een `vzdump` van gemaakt (3,75 GB) zodat het besluit omkeerbaar blijft.
+
+⚠️ 401 is nu de enige VM in dit spoor die **niet** uit de nieuwe baseline komt en dus nog de oude
+template-fouten draagt: gedeelde machine-id, scheve indeling, geen versiemarkering. Neem hem mee
+in fase 9 van [[project-template-fleet-defects]] of kloon hem alsnog opnieuw.
+
 ## Stand
 
 | Fase | Status |
