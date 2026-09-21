@@ -86,6 +86,7 @@
 - [Managementsegmentatie VLAN 30](project_mgmt_segmentatie_vlan30.md) — beheerinterfaces naar VLAN 30, alleen vanaf VLAN 34; geblokkeerd door Ceph public_network op VLAN 10 → eerst naar VLAN 8 VL-CEPH-PUBNET
 - [Proxmox-kloon en identiteit](feedback_proxmox_clone_identiteit.md) — kloon/template vernieuwt MAC en smbios-uuid maar kopieert machine-id en SSH-host-sleutels mee; leegmaken en afsluiten in één handeling
 - [Frappe-platform (aankondiging)](project_frappe_platform.md) — de eerste schets; zie hieronder voor de uitgewerkte stand
-- [FRAME op Frappe](project_frame_frappe_hosting.md) — 4 omgevingen dev/test/acc/acc-test + kále Frappe; kennisbank in OwnProjects/melira-project/hosting/; code teruggehaald uit gesloten PR #1
+- [FRAME op Frappe](project_frame_frappe_hosting.md) — 4 omgevingen dev/test/acc/acc-test + kále Frappe; dev-bench ✅ e2e 21/09; kennisbank in OwnProjects/melira-project/hosting/
 - [IT-werkstations beveiligen en bewaken](project_it_workstation_hardening.md) — nieuw werfje; VLAN 34-toestellen dragen ansible-key + vault-pw + KeePassXC, dunste laag in de defense-in-depth
 - [Admin-VPN met MFA](project_vpn_mfa.md) — hard gate F1b; EFG draait OpenVPN zonder MFA; routes UID / eigen RADIUS / VPN-van-de-gateway-af; eerst 3 feiten uit de controller
+- [Toon het echte commando](feedback_toon_het_echte_commando.md) — bij een falende Ansible-shelltaak eerst de argv inspecteren (shlex) vóór je hypothesen bedenkt; no_log en --rm wissen juist het spoor
