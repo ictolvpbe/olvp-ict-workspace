@@ -88,3 +88,4 @@
 - [Frappe-platform (aankondiging)](project_frappe_platform.md) — de eerste schets; zie hieronder voor de uitgewerkte stand
 - [FRAME — Melira op Frappe](project_melira_frappe_hosting.md) — 4 omgevingen dev/test/acc/acc-test + kále Frappe; kennisbank in OwnProjects/melira-project/hosting/; code teruggehaald uit gesloten PR #1
 - [IT-werkstations beveiligen en bewaken](project_it_workstation_hardening.md) — nieuw werfje; VLAN 34-toestellen dragen ansible-key + vault-pw + KeePassXC, dunste laag in de defense-in-depth
+- [Admin-VPN met MFA](project_vpn_mfa.md) — hard gate F1b; EFG draait OpenVPN zonder MFA; routes UID / eigen RADIUS / VPN-van-de-gateway-af; eerst 3 feiten uit de controller
