@@ -91,3 +91,4 @@
 - [Admin-VPN met MFA](project_vpn_mfa.md) — hard gate F1b; EFG draait OpenVPN zonder MFA; routes UID / eigen RADIUS / VPN-van-de-gateway-af; eerst 3 feiten uit de controller
 - [Toon het echte commando](feedback_toon_het_echte_commando.md) — bij een falende Ansible-shelltaak eerst de argv inspecteren (shlex) vóór je hypothesen bedenkt; no_log en --rm wissen juist het spoor
 - [NXSL 5 concatenatie](feedback_nxsl5_concat.md) — samenvoegen is `..` niet `.`; console-compiler streng, nxscript slikt de oude vorm
+- [UniFi override = 2 velden, volgorde heilig](feedback_unifi_override_inform_two_fields.md) — super_identity.hostname (FQDN!) éérst, dan super_mgmt.override_inform_host=true; omgekeerd = provision-golf met korte naam → devices zonder DNS-suffix stranden

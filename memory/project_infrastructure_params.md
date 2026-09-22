@@ -27,6 +27,10 @@ Bevestigde parameters voor [[project-odoo-public-access]] (laatste herziening 20
 
 Volledige VLAN-tabel (30+ VLANs over hoofdcampus + remote BAWA + test): zie `platform-handbook/network-physical/network/vlans.md`.
 
+**Interne DNS-servers (bevestigd 2026-09-21):** AD-DC's `10.10.0.10` + `10.10.0.11` (beide antwoorden voor olvp.int) én `10.34.0.10` (échte DNS-server op admin-VLAN 34, bevestigd door user). De gateway op `10.10.0.1` is een **volwaardige UniFi OS-console** (eigen Network-app; serveert VLAN-DHCP en ZBF-firewall-zones) — tweede beheervlak naast de oude UniFi-controller 10.10.100.15, zie [[project-unifi-os-server-migration]].
+
+⚠️ **10.34.0.10 is BESMET voor de naam `unifi` (ontdekt 2026-09-22)**: resolvt `unifi.olvp.int` naar álle gateway-interface-IP's (kaping-patroon; forwardt kennelijk via de UniFi-gateway), andere olvp.int-namen wél correct. **Niet gebruiken als device-DNS zolang dit niet gefixt is** — gebruik `10.10.0.11` als secundaire. Verklaart de "intermitterende" kaping uit juni-sept. Fix-opties: olvp.int-forward op die server rechtstreeks naar de AD-DC's, of lokale override voor unifi.olvp.int. Zie [[project-unifi-os-server-migration]].
+
 **DMZ IP-toekenning HAProxy-VLAN (VLAN 21, IPs akkoord 2026-05-21; VLAN-tag verhuisd 210 → 21 op 2026-05-31):**
 - 10.21.0.1 — gateway
 - 10.21.0.5 — VIP (VRRP shared tussen haproxy-1 en haproxy-2)
