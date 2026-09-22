@@ -90,3 +90,4 @@
 - [IT-werkstations beveiligen en bewaken](project_it_workstation_hardening.md) — nieuw werfje; VLAN 34-toestellen dragen ansible-key + vault-pw + KeePassXC, dunste laag in de defense-in-depth
 - [Admin-VPN met MFA](project_vpn_mfa.md) — hard gate F1b; EFG draait OpenVPN zonder MFA; routes UID / eigen RADIUS / VPN-van-de-gateway-af; eerst 3 feiten uit de controller
 - [Toon het echte commando](feedback_toon_het_echte_commando.md) — bij een falende Ansible-shelltaak eerst de argv inspecteren (shlex) vóór je hypothesen bedenkt; no_log en --rm wissen juist het spoor
+- [NXSL 5 concatenatie](feedback_nxsl5_concat.md) — samenvoegen is `..` niet `.`; console-compiler streng, nxscript slikt de oude vorm

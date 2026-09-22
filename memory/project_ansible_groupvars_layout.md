@@ -14,4 +14,6 @@ Sinds ~2026-06-02 gebruikt `platform-ansible` de **directory-stijl** group_vars:
 - In playbooks: **geen** expliciete `vars_files`-entry voor de vault — die laadt automatisch. Wel nog `vars_files: vars/instances.yml` (dat is een custom pad, geen auto-load-locatie).
 - Vault-password bij run: `--ask-vault-pass` lokaal, of Semaphore Key Store op de runner. Zie [[feedback-semaphore-key-canonical]].
 
+**⚠️ Precedentie-val (2026-09-21, NetXMS-uitrol op pve_prod)**: een override als groeps-`vars:` in **`inventory.yml`** wordt stil genegeerd zodra `group_vars/all/vars.yml` dezelfde variabele zet. Inventarisgroepsvars staan láger in de precedentie dan élk group_vars-bestand, ook dat van `all`. Symptoom: playbook draait groen, waarde is de oude (`Servers=10.35.0.20,10.10.100.2` terwijl `netxms_legacy_server: ""` in de inventaris stond). Zet zulke overrides in **`group_vars/<groep>.yml`** of als **host**-var in de inventaris (host-vars winnen wél van group_vars/all) — dat laatste is het patroon dat de rest van `inventory.yml` al gebruikt voor `ansible_ssh_common_args`.
+
 Gerelateerd: [[project-hosting-fase1-status]], role `odoo-podman` ([[project-infrastructure-params]]).

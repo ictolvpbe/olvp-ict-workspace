@@ -1,0 +1,46 @@
+# UniFi vs NetXMS - dekkingsvergelijking 2026-09-22
+
+## 33 AP's online in UniFi, afwezig in NetXMS (subnet 10.70.1.0/24)
+  WAP-PA002-01           10.70.1.10     U6ENT
+  WAP-PA103-01           10.70.1.11     U6ENT
+  WAP-PA103-02           10.70.1.21     U6ENT
+  WAP-PA3G1-01           10.70.1.22     U6ENT
+  WAP-PC001-01           10.70.1.36     U6ENT
+  WAP-PC002-01           10.70.1.37     U6ENT
+  WAP-PC004-01           10.70.1.32     U6ENT
+  WAP-PC005-01           10.70.1.31     U6ENT
+  WAP-PC101-01           10.70.1.49     U6ENT
+  WAP-PC201-01           10.70.1.46     U6ENT
+  WAP-PD001-01           10.70.1.56     U6ENT
+  WAP-PJ201-01           10.70.1.131    U7HD
+  WAP-PJ202-01           10.70.1.132    U6ENT
+  WAP-PL008-01           10.70.1.150    U6ENT
+  WAP-PL104-01           10.70.1.153    U6ENT
+  WAP-PL108-01           10.70.1.160    U6ENT
+  WAP-PL109-01           10.70.1.154    U6ENT
+  WAP-PL202-01           10.70.1.157    U6ENT
+  WAP-PM001-01           10.70.1.170    U6ENT
+  WAP-PM003-01           10.70.1.51     U6ENT
+  WAP-PM004-01           10.70.1.182    U6ENT
+  WAP-PM007-01           10.70.1.172    U6ENT
+  WAP-PN002-01           10.70.1.195    U6ENT
+  WAP-PN003-01           10.70.1.54     U6ENT
+  WAP-PN103-01           10.70.1.198    U6ENT
+  WAP-PN105-01           10.70.1.192    U6ENT
+  WAP-PN106-01           10.70.1.199    U6ENT
+  WAP-PN201-01           10.70.1.202    U6ENT
+  WAP-PN204-01           10.70.1.197    U6ENT
+  WAP-PN206-01           10.70.1.203    U6ENT
+  WAP-PP102-01           10.70.1.216    U6ENT
+  WAP-PP203-01           10.70.1.213    U6ENT
+  WAP-PU204-01           10.70.1.248    U7PG2
+
+## 8 AP's afwezig in NetXMS en ook offline in UniFi (10.1.111.0/24)
+  WAP-PA0BUI-01          10.1.111.25    U7PG2
+  WAP-PA103-01-OUD       10.1.111.11    U7PG2
+  WAP-PA103-02-OUD       10.1.111.21    U7PG2
+  WAP-PA3G1-OUD          10.1.111.22    U7PG2
+  WAP-PD001-01-OUD       10.1.111.54    U7PG2
+  WAP-PD0G1-01           10.1.111.51    U7HD
+  WAP-PN101-01           10.1.111.190   U7PG2
+  WAP-PP203-01-OUD       10.1.111.213   U7PG2
