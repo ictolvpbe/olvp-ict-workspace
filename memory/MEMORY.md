@@ -79,7 +79,7 @@
 - [SRVV-P-BACKUP-01](project_srvv_p_backup_01.md) — Debian 13, Bacula 15 + Bacularis; doelhost voor de Teamdrive-backup; open: dubbele machine-id, Webmin op 0.0.0.0, Bacula alleen op localhost, VLAN-verhuizing naar 10.35.0.60
 - [UNAS 'local account' breekt SMB](feedback_unas_local_account_smb.md) — gebruiker met die optie krijgt geen SMB-toegang; mount error(13) terwijl wachtwoord klopt; test auth met smbclient -L
 - [Template-fouten op de hele vloot](project_template_fleet_defects.md) — TPL-1/TPL-2: gedeelde machine-id (11/12) + scheve indeling; vloot gemeten = TWEE generaties (5 legacy-home / 7 legacy-opt), niemand op baseline; baseline-VM VMID 516 ✅ geseald 21/09 en bewezen met vier échte FRAME-klonen (alle op 13.1); nog open: de elf vloothosts (fase 9)
-- [Euro-Office + Nextcloud/OpenCloud](project_eurooffice_nextcloud.md) — EU-fork van ONLYOFFICE, publieke testserver met twee sporen (Nextcloud + OpenCloud, gedeelde document-server); ontwerp+runbook klaar, niets gebouwd
+- [Euro-Office + Nextcloud/OpenCloud](project_eurooffice_nextcloud.md) — EU-fork van ONLYOFFICE, publieke testserver met twee sporen (Nextcloud + OpenCloud, gedeelde document-server); bouw gestart 23/09: beide VMs leven (10052/10053), automation klaar, wacht op vault-pw + A-records + step-ca-pw
 - [Bacula xattr bij database-loze stores](feedback_bacula_xattr_databaseless.md) — `xattrsupport = yes` staat niet standaard aan; zonder die optie groene backup maar restore zonder shares/versies
 - [Memory cross-checken tegen de repo](feedback_verify_memory_against_repo.md) — memory-regels kunnen fout zijn (index sprak eigen bestand tegen); grep het handbook vóór je op een afgeleid feit voortbouwt
 - [Baseline-versiemarkering](project_baseline_versiemarkering.md) — /etc/olvp/baseline.json als Ansible-fact (ADR 0009); bewijs-gestuurd, geïmplementeerd en vlootbreed gedraaid; werklijst per host
@@ -92,3 +92,4 @@
 - [Toon het echte commando](feedback_toon_het_echte_commando.md) — bij een falende Ansible-shelltaak eerst de argv inspecteren (shlex) vóór je hypothesen bedenkt; no_log en --rm wissen juist het spoor
 - [NXSL 5 concatenatie](feedback_nxsl5_concat.md) — samenvoegen is `..` niet `.`; console-compiler streng, nxscript slikt de oude vorm
 - [UniFi override = 2 velden, volgorde heilig](feedback_unifi_override_inform_two_fields.md) — super_identity.hostname (FQDN!) éérst, dan super_mgmt.override_inform_host=true; omgekeerd = provision-golf met korte naam → devices zonder DNS-suffix stranden
+- [Mail het log niet als body](feedback_mail_log_not_as_body.md) — rapportmail met volledig log botst op message_size_limit; samenvatting + gzip-bijlage
