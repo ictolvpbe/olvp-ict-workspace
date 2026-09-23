@@ -93,3 +93,11 @@ Werk staat op branch `backup/cloud-backup-rapportage` in `platform-ansible` (8 c
 
 **How to apply.** Een keten die "draait" is niet hetzelfde als een keten die meldt. Controleer na elke uitrol drie dingen apart: draait de taak, klopt wat ze meet, en komt het signaal ergens aan. Alle zes fouten hierboven zaten in dat tweede en derde stuk. En bij een systemd-unit van het type oneshot: alles wat het script afsplitst sterft mee — post moet dus synchroon verstuurd worden, of door een aparte unit.
 
+
+## Fout 20, gevonden 2026-09-22 — gevolgregels telden als echte fout
+
+De classificatie WARN-vs-FAIL uit fout 17 werkte maar half. Eén geblokkeerd bestand is benign, maar rclone schrijft daarna per doelmap nog `not deleting files/directories as there were IO errors` en `failed to delete N files`. Die gevolgregels stonden niet op de lijst, dus bleef de drive alsnog op FAIL: **zeven van de negen "mislukte" drives van 22/09 hadden nul echte fouten**. Ook `source file is being updated` toegevoegd (iemand werkte in het bestand tijdens de run; komt de volgende nacht mee). Commit `736deba` op `backup/cloud-backup-rapportage`, uitgerold en gerookt op 22/09.
+
+**Van de negen geblokkeerde bestanden is maar de helft een echte grens**: vier zijn opnames waarvan de eigenaar downloaden blokkeerde (Meet-opnames + één mp4), vijf zijn gewone documenten met "kijkers kunnen niet downloaden" — die komen mee zodra iemand die optie afzet. Excluderen per drive is dus het verkeerde gereedschap; dat zou juist de vijf herstelbare gevallen onzichtbaar maken.
+
+**SO-B-TEAM's naambotsing lag op de NAS, niet in Drive.** Een bestand `6HUWE trui` uit januari stond daar waar intussen een map met die naam hoort. rclone kon het nooit opruimen omdat élke run eindigde met IO-fouten — de blokkade hield zichzelf in stand. Handmatig naar `CLBU-DIFF` verplaatst op 22/09. **How to apply:** bij een `mkdir … not a directory` op een rclone-doel: kijk eerst of het obstakel aan de *bestemmingskant* staat. Een `sync` die niets mag verwijderen kan zo'n botsing per definitie niet zelf oplossen.

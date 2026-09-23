@@ -34,3 +34,11 @@ Doelhost voor de geconsolideerde backup-rollen. Vastgesteld 2026-09-17 via read-
 **Nieuw gevonden**: `/var` is maar 2,9 GB en stond op 79% — zie [[project-template-fleet-defects]], TPL-1. Online te groeien met `lvextend -r`, er staat 9,91 GB vrij in de VG.
 
 Ansible: groep `cloud_backup` in `inventory.yml`, playbook `cloud-backup.yml`, rol `roles/cloud-backup`.
+
+## Bacula backupt niets — vastgesteld 2026-09-22, gepland na FRAME (BU-8)
+
+Punt 3 van de inventarisatie heeft een concreet gevolg dat pas nu gemeten is. In de catalogus staan **266 jobs**, maar het is uitsluitend de standaardtaak `BackupCatalog`, en die eindigt sinds minstens 07/09 **elke nacht** op *Backup Error*: 0 bestanden, 0 bytes, 30 minuten retries. Het joblog zegt het letterlijk: `[DE0039] Unable to connect to Storage Daemon "bacula_storage" on SRVV-P-BACKUP-01:9103 — Verbinding is geweigerd`. De director belt de hostnaam, de SD luistert alleen op `127.0.0.1`. Op `/mnt/bacula_storage` staat één leeg bestand `test` uit november 2025. Geen alarm, dus het viel niemand op.
+
+**Bewust geparkeerd tot na de FRAME-servers** ([[project-frame-frappe-hosting]]), op vraag van de user: eerst die werf af en de projectplanning overzichtelijk, dan Bacula. Tracker **BU-8**; de studie naar databasebeschikbaarheid (PITR / warme standby BAWA / HA-cluster) staat als **BU-9**.
+
+**How to apply:** noem deze host niet "Bacula in de steigers" — er is een director, een catalogus en een planning, maar er is nooit één byte geschreven. Bij het oppakken: eerst de SD-bind (of `localhost` in de director-config), en voor Odoo hoort de filestore bij de database — een DB-only backup geeft een restore waarin elke bijlage stuk is.

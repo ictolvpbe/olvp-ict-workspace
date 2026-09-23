@@ -32,3 +32,13 @@ Naast de Proxmox-VM-backups op de NAS draait een **offline keten**: 2× per week
 **Update 2026-09-17 — de Teamdrive-tak van deze keten lag 87 dagen stil.** De cloud-pull naar `clbu_full` draaide sinds 22 juni niet meer, dus de USB-schijven droegen in die periode Teamdrive-data van 22 juni; de Proxmox-tak was wél actueel. Zie [[project-teamdrive-backup-outage-202609]]. Twee gevolgen voor deze memory: er is **geen persoonlijk OAuth-token** maar een GCP-service-account met domain-wide delegation, en de cloud-pull verhuist niet naar een nieuwe `SRVV-CLOUDBU-01` maar wordt herbouwd op [[project-srvv-p-backup-01]], samen met Bacula. De scheiding met `PC-BACKUP-01` blijft wél overeind — die afweging verandert niet.
 
 Ook bevestigd: het NAS-account `bob.benny` is persoonsgebonden en staat op `SRVV-P-BACKUP-01` **in klare tekst in `/etc/fstab` (mode 644)**. Tracker BU-6.
+
+## Nacontrole 2026-09-22 — keten draait, rapportage lag stil
+
+Beide takken van de maandagrun 21/09 slaagden (Proxmox 7 u 10, Teamdrives 45 min). Maar **sinds 31 augustus vertrok er geen enkele rapportmail**: het script stuurt het log als body én als bijlage en botste op `message_size_limit` — zie [[feedback-mail-log-not-as-body]]. Gerepareerd in de drie scripts op `PC-MONITORING-01` (back-ups `*.bak-20260922` ernaast) én structureel in de rol `backup-offline` (main, `backup_mail_max_attach`).
+
+**Broken pipe op de Proxmox-kant is weg.** De vzdump-jobs faalden tot 13/09 op `vma_queue_write: write error - Broken pipe`; oorzaak was het IP-conflict op `.7`. Laatste voorkomen 13/09 00:06, CIFS-kernelmeldingen stoppen na 15/09, twee schone runs sindsdien. Bevestigt de diagnose in [[project-gateway-cutover]].
+
+**De vzdump-jobs draaien op een handmatige VMID-lijst**, niet op "alle gasten". Op 22/09 stonden SRVV-MONITOR-01, de drie FRAME-VM's en SRVV-FRAPPE-02 er niet in — zonder enige backup. User heeft de lijst diezelfde dag aangevuld. **How to apply:** bij elke nieuwe VM de joblijst nakijken; er is geen mechanisme dat een vergeten gast meldt.
+
+Opgeruimd: 88 GiB aan onvolledige archieven (`.vma.dat` van afgebroken runs, 05/04 t/m 13/09). Blijft staan: ± 277 GB dumps van VMID's die niet meer bestaan (112, 500, 10011, 10040, 10081) — prune raakt die nooit aan omdat er geen job meer voor draait.
