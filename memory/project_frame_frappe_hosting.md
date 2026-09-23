@@ -106,6 +106,183 @@ de role, niet de apps-laag. Geen GitLab-sleutel nodig. Overgezet met
 `docker save | ssh 'sudo podman load'` — **let op die `sudo`**: Quadlet-units zijn
 systeem-units en gebruiken de rootful store, niet die van de ansible-gebruiker.
 
+## ▶ Gedaan op 2026-09-22
+
+1. **Idempotentie-check verscherpt** (commit `9bf54b2`). De check keek naar
+   `site_config.json`, dat bench vóór de database schrijft. Nu spreekt ze de database
+   zelf aan: `bench --site X execute frappe.db.get_database_size` — gemeten op de
+   dev-bench rc 0 met de grootte, rc 2 op een site die niet bestaat. Draait als
+   wegwerpcontainer, dus ook bruikbaar als de backend plat ligt. Een halve site wordt
+   **niet** automatisch opgeruimd: dat wist een database, dus de taak stopt met het
+   logpad erbij.
+2. **Apps-laag gewired** (commit `f8f296a`) — de twee stukken waar `frappe-update.yml`
+   zelf op wachtte:
+   - `apps`-volume per bench, met dezelfde seeding als `sites/`. ⚠️ Dit is gotcha 2 in
+     het kwadraat: **het framework zelf woont in `apps/frappe` in het image** (463 MB,
+     geverifieerd), dus een lege bind-mount op dat pad maskeert frappe en er start
+     niets meer. Eerst `cp -an` uit het image, dan pas mounten — in alle vijf de
+     container-units.
+   - read-only GitLab deploy-key per VM in `/opt/melira/ssh` (0600, uid 1000) uit
+     `vault_frappe_gitlab_deploy_key`; host-sleutels vooraf vastgelegd met `ssh-keyscan`
+     op de controlmachine in plaats van blind `accept-new` op de VM.
+   - `frappe-update.yml` draait de sync nu in een **wegwerpcontainer** met de sleutel
+     read-only erin, zodat de backend die maanden loopt hem niet draagt. Het image komt
+     uit de draaiende backend, dus de sync werkt nooit met een andere runtime.
+3. **Units die wijzigen worden herstart.** Stond op `started`, dus een draaiende
+   container bleef op zijn oude mounts hangen en de bench liep iets anders dan wat in
+   de repo stond. Zonder die fix zou de apps-volume-wijziging stil niet aankomen.
+4. **De vier VM's staan nu in `hosting/reference/vm-inventory.md`** (handbook `c87033c`).
+
+**Nog niet gedraaid**: de rol is sinds deze wijzigingen niet uitgevoerd. De dev-bench
+draait nog zonder apps-volume. Eerste run doet drie dingen tegelijk — apps-map vullen,
+units herschrijven, containers herstarten — dus doe hem met `--limit srvv-dev-frame-01`
+en kijk daarna of de negen containers gezond terugkomen en `/login` nog 200 geeft.
+
+**Blokkade voor de echte apps**: er is nog geen deploy-key. Zolang
+`vault_frappe_gitlab_deploy_key` leeg is, rolt de stack uit maar kan `frappe-update.yml`
+de private Melira-repo's niet ophalen.
+
+## ✅ FRAME draait met de echte apps (2026-09-22)
+
+`SRVV-DEV-FRAME-01`: **acht Melira-apps op branch `dev` geïnstalleerd** op
+`frame-dev.olvp.be`, negen containers gezond, `/api/method/ping` → `pong`,
+`/login` → 200. Apps 497 MB, venv 615 MB, sites 328 KB.
+
+**Toegang = groeps-deploy-token, geen deploy-key.** GitLab kent deploy-keys enkel per
+project; op groepsniveau bestaat alleen een deploy-**token**. Eén token op `melira/core`
+met scope `read_repository` dekt alle acht, is met één handeling in te trekken en kan
+een vervaldatum dragen. Het token staat in de vault (`vault_frappe_gitlab_deploy_token`
++ `_user`) en belandt in `/opt/melira/git/credentials`, niet in de remote-URL — anders
+schrijft `get-app` het in `.git/config` van elke app.
+
+## Stand per host (2026-09-22)
+
+| VM | bench | kanaal | apps | site | Caddy/TLS |
+|---|---|---|---|---|---|
+| `srvv-dev-frame-01` | dev | `dev` | ✅ 8 | ✅ 200 | ✅ HTTPS 200, cert t/m 29/09, renew-timer |
+| `srvv-acc-frame-01` | acc | `prod` | ✅ 8 | ✅ 200 | ✅ HTTPS 200, idem |
+| `srvv-tst-frame-01` | test | `test` | ✅ 8 | ✅ 200 | ✅ HTTPS 200, idem |
+| `srvv-tst-acc-frame-01` | acc-test | `test` | ✅ 8 | ✅ 200 | ✅ HTTPS 200, idem |
+
+**Fase 1 is af (2026-09-22)**: vier omgevingen, elk negen containers, acht Melira-apps op
+hun kanaal, Caddy met een step-ca-cert en een actieve renewal-timer. Alles vanaf de
+Tier-1-baseline, volledig uit code.
+
+⚠️ **Gotcha bij het uitgeven van certs**: `step ca certificate` schrijft naar het pad dat je
+opgeeft. Drie keer achter elkaar naar `/tmp/cert.crt` laat er één over — en welke merk je pas
+als je de subject leest. Geef per FQDN een eigen bestandsnaam. En controleer de FQDN zelf:
+test is `.olvp.be` (publiek), acc en acc-test zijn `.olvp.int`.
+
+**Het kanaal heet `test`, niet `tst`** (commit `ed1055a`). De repo's dragen `dev`, `test`,
+`prod` en `main`; `test` staat in alle acht op dezelfde commit als `prod`, dus test begint
+gelijk aan wat acc draait en elke wijziging erin is een bewuste promotie.
+
+⚠️ **How to apply bij zo'n meting**: mijn eerste controle greppte op `refs/heads/tst$` en
+concludeerde "de branch bestaat niet". Dat was letterlijk waar en volstrekt misleidend — de
+vraag had moeten zijn wélke branches er staan. Ik heb op grond daarvan bijna acht overbodige
+branches in de repo's van de leverancier gemaakt; er staat er nu één teveel op `melira_core`
+(`tst`, zelfde commit als `prod`/`test`), te verwijderen.
+
+**Image-distributie**: `ssh <bron> 'sudo podman save <img>' | ssh <doel> 'sudo podman load'`
+— 2,46 GB, een paar minuten. Het runtime-image is sinds deze dag de **default**
+(`frappe_image`), niet langer een per-VM-override.
+
+**step CLI + cert per FQDN blijven handwerk.** De binary staat op de CA-host
+(`/usr/bin/step`, 0.30.2) en gaat er via Ansible naartoe; het initiële cert vraagt het
+admin-provisioner-wachtwoord uit KeePassXC — dat staat **niet** in de Ansible-vault.
+Laat `--not-after 24h` uit het commando weg: de CA geeft nu 168 u en die marge wil je.
+
+⚠️ **De step-ca draagt een ACME-provisioner** (`{"type":"ACME","name":"acme"}`). Daarmee kan
+Caddy zijn certs volledig zelf ophalen én vernieuwen — geen eerste uitgifte met de hand,
+geen renew-script, geen provisioner-wachtwoord. Voorwaarde is DNS, want de CA moet de host
+op naam bereiken voor de http-01-challenge. Te beslissen vóór test/acc-test gebouwd worden;
+het zou de klasse fouten wegnemen uit [[feedback-caddy-cert-renew-fail-isolation]].
+
+## Edge + DNS (2026-09-22)
+
+**frame-test is publiek, frame-dev bewust niet.** Een dev-omgeving met `developer_mode: 1`
+hoort niet van buiten bereikbaar te zijn. HAProxy draagt alleen `be_srvv_tst_frame_01`; op
+`frame-dev.olvp.be` antwoordt de edge 503. ⚠️ Het publieke A-record voor frame-dev bestaat
+nog bij one.com en moet weg; interne toegang tot dev vraagt een AD-zone die naar
+10.200.14.51 wijst.
+
+| Laag | Stand |
+|---|---|
+| HAProxy-backend `be_srvv_tst_frame_01` | UP op beide nodes; Odoo + Keycloak ongemoeid |
+| Firewall DMZ → 10.200.14.51-52:443 | ✅ getest vanaf beide HAProxy-nodes |
+| Health-check `/api/method/ping` | 200; ook de **SNI-loze** handshake werkt (`default_sni`) |
+| LE-cert `frame-test.olvp.be` | ✅ 2026-09-22, t/m 21/12, op beide nodes, extern verify 0 |
+| `frame-acc` / `frame-acc-test` in `olvp.int` | ✅ op alle zes de DC's |
+
+**Gotcha die al gedocumenteerd stond en die ik opnieuw ontdekte**: certbot draait de hooks in
+`renewal-hooks/deploy/` alleen bij `certbot renew`, niet bij een verse `certonly`. Het cert
+belandt dan wél in `/etc/letsencrypt/live/` maar nooit in `/etc/haproxy/certs/`. Handmatig:
+`sudo env RENEWED_LINEAGE=/etc/letsencrypt/live/<fqdn> /etc/letsencrypt/renewal-hooks/deploy/haproxy-deploy.sh`.
+Staat in `hosting/operations/deploy-sspr.md` — lees dat runbook vóór je een nieuw publiek
+cert aanvraagt.
+
+**AD-DNS-latentie**: een nieuw record op één DC staat pas na ~15 minuten op de andere vijf.
+En de negatieve TTL van `olvp.int` is 3600 s, dus een te vroege query blijft een uur in de
+cache van gateway en clients hangen. Meet met `dig` per DC én let op de `aa`-vlag; een leeg
+antwoord is niet hetzelfde als NXDOMAIN.
+
+## De vier volumes — en waarom er precies vier zijn
+
+Bij on-VM git-sync moet **alles wat een build of install aanraakt** op de VM leven, niet in de
+image-laag. Er zijn vier zulke plekken, en ze kwamen één voor één boven, elk met een eigen
+symptoom:
+
+| Volume | Wat er misgaat zonder | Symptoom |
+|---|---|---|
+| `sites/` | bench vindt `apps.txt` niet | élk bench-commando weigert |
+| `apps/` | app-code verdwijnt | code weg na herstart |
+| `env/` | editable pip-install verdwijnt | `ModuleNotFoundError` terwijl de code er staat |
+| `assets/` | gebouwde CSS/JS verdwijnt | **404 op CSS, pagina zonder opmaak** |
+
+Die laatste is de subtielste: `sites/assets` is geen map maar een **symlink** naar
+`/home/frappe/frappe-bench/assets`, gelegd door de image-entrypoint. `bench build` schrijft
+daar, dus zonder volume is het resultaat weg met de container — terwijl de manifest wél naar
+de nieuwe bestandsnamen verwijst. De JS-bundle laadde nog omdat die inhoudelijk niet
+veranderde en dus dezelfde hash hield; alleen de CSS kreeg een nieuwe hash door de app-styles.
+**Half werkend ziet eruit als een toevallig probleem** — dat kostte de meeste tijd.
+
+⚠️ **Gevolg voor image-upgrades**: een nieuw image brengt geen nieuwe `env/` of `assets/` meer
+mee. Bij een upgrade moeten die mappen weg zodat de rol ze opnieuw vult, gevolgd door een
+`bench build`. Zonder dat draai je nieuwe code op oude assets.
+
+## Zeven fouten die pas een échte app-sync blootlegde
+
+Alle zeven zijn generiek voor "apps uit git in plaats van uit het image":
+
+1. **`bash -lc` wist het PATH.** Een login-shell leest `/etc/profile` en gooit de
+   image-PATH weg, inclusief de nvm-node. `bench build` viel over `node: not found`
+   terwijl node in het image zit. Met `bash -c` blijft de PATH staan.
+2. **De venv zat in de image-laag.** `get-app` doet `uv pip install -e` in
+   `frappe-bench/env`; leeft die in het image, dan verdwijnt de installatie met de
+   wegwerpcontainer en meldt de backend `ModuleNotFoundError`. `env/` is nu een volume
+   op de VM. ⚠️ Gevolg: een nieuw image brengt géén nieuwe venv meer mee — bij een
+   upgrade moet die map weg.
+3. **`apps/frappe` maskeren.** Het framework zelf woont in `apps/frappe` ín het image;
+   een lege bind-mount daarop en er start niets meer. Eerst kopiëren, dan mounten.
+4. **Credentials als los bestand mounten kan niet.** Git's store-helper schrijft terug
+   via temp + rename, en rename over een bind-gemount *bestand* geeft EBUSY — ook
+   read-write. Mount de **map**.
+5. **De remote heet `upstream`.** `bench get-app` kloont met `--origin upstream`;
+   hardcoded `origin` geeft "does not appear to be a git repository" op een repo die er
+   gewoon staat.
+6. **`get-app` bouwt te vroeg.** Het bouwt meteen de assets van de app die het binnenhaalt,
+   en die build importeert álle apps uit `apps.txt`. Eén app die nog niet in de venv zit
+   laat dat stranden, en wélke app je treft hangt af van de volgorde in de lus. Nu:
+   `--skip-assets` in de lus, één `bench build` aan het eind.
+7. **`bench setup requirements` is onbruikbaar hier.** Het maakt per app een App-object en
+   doet `git.Repo()`; `apps/frappe` komt uit het image en heeft geen `.git` (frappe_docker
+   stript dat) → `InvalidGitRepositoryError` op frappe zelf. Installeer de apps rechtstreeks.
+
+**En één van mezelf**: het sync-script ging als `bash -c '<script>'` mee. Dan is élk
+aanhalingsteken in dat script een tijdbom — `awk '{print $1}'` was genoeg om bash een
+afgekapt script te geven. Nu via **stdin** (`bash -s`), zodat er geen buitenste quoting
+meer is om stuk te maken. Zie [[feedback-toon-het-echte-commando]].
+
 ## ▶ Volgende stappen (stand einde 2026-09-21)
 
 1. **Idempotentie-check verscherpen** — kijkt nu naar `site_config.json`, dat vóór de database
@@ -153,3 +330,27 @@ vermijden waren.
 Gerelateerd: [[project-frappe-platform]] (de oorspronkelijke aankondiging),
 [[project-intranet-hosting]] (het gespiegelde patroon), [[project-containerization]],
 [[project-mcp-and-itsm]] (`melira_mcp` raakt aan het MCP-spoor).
+
+## frame-test landt nu op Melira (2026-09-23)
+
+`https://frame-test.olvp.be/` gaf de kale Frappe-login; de toepassing zelf zat op `/melira`. Website
+Settings → `home_page` staat nu op **`melira`**, waarna `/` de Melira-SPA rendert (geverifieerd
+achter de bench-nginx én achter Caddy: `<title>Melira</title>`).
+
+Gezet zonder de UI, zodat het herhaalbaar is:
+
+```
+podman exec melira-test-backend bench --site frame-test.olvp.be execute \
+  frappe.client.set_value --kwargs \
+  '{"doctype":"Website Settings","name":"Website Settings","fieldname":"home_page","value":"melira"}'
+podman exec melira-test-backend bench --site frame-test.olvp.be clear-website-cache
+podman exec melira-test-backend bench --site frame-test.olvp.be clear-cache
+```
+
+⚠️ Dit is **site-data, geen code**: het zit in de database van deze site, niet in de Ansible-rol en
+niet in `melira_core/hooks.py` (waar `home_page` uitgecommentarieerd staat). Een verse site krijgt
+het dus niet vanzelf. Wil je dit op dev/acc/acc-test ook, dan moet het daar apart gezet worden — of
+beter, in de app als `home_page = "melira"` in `hooks.py`, zodat elke installatie het erft. Zolang
+dat niet gebeurt: bij een `bench drop-site` + opnieuw aanmaken is deze instelling weg.
+
+Beide cache-clears zijn nodig: `clear-cache` alleen laat de oude website-routekaart staan.

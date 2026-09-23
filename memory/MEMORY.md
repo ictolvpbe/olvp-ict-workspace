@@ -96,3 +96,4 @@
 - [Tier-1-kloon procedure](feedback_tier1_kloon_procedure.md) — vmbr1+tag (niet vmbr0), hostname/IP via qm guest exec want geen cloud-init, en qm resize geeft blokken maar geen filesystem; /srv staat op 5 G
 - [Uitgerolde branch is niet main](feedback_deployed_branch_not_main.md) — platform-ansible draait vanaf melira-frappe-fase1; vanaf main uitrollen wist de FRAME-backend uit haproxy.cfg
 - [Ontwerp-runbook is niet geverifieerd](feedback_ontwerp_runbook_niet_geverifieerd.md) — image-tags/IPs in een ontwerp zijn gelezen, niet aangeraakt; trek ze één keer echt aan vóór fase 1 (tag 9.3.1 bestond niet)
+- [AD-replicatie BSW001 (NET-7)](project_ad_replication_bsw001.md) — repadmin-fout 58 verborg de inkomende replicatie van de remote-campus-DC; EFG-regel Services→VPN ontbrak, DNS/UDP53 kwam er wél door. Opgelost 2026-09-23; leidt tot MON-2
