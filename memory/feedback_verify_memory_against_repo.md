@@ -34,4 +34,33 @@ structureel. (Rechtgezet 2026-09-18.)
 
 In dezelfde sessie ook te stellig geweest over "OpenCloud heeft geen Calendar/Contacts" (die bestaan
 al sinds mei 2025). Zelfde onderliggende fout: een plausibele aanname als vaststelling presenteren.
-Gerelateerd: [[feedback-ansible-check-mode-verify]], [[feedback-same-subnet-test-proves-nothing]].
+
+## Het omgekeerde geval — 2026-09-23: het handbook had ongelijk
+
+Hierboven staat "grep het handbook" als de correctie. Dat is niet de hele les, want het handbook is
+zelf ook maar een document. Bij de cloud-werf bleek:
+
+- `network-physical/reference/ip-plan.md` zette de Odoo-testservers op **`10.200.0.40/.41`** in
+  "VLAN 200", en `hosting/reference/vm-inventory.md` herhaalde dat.
+- `platform-ansible/inventory.yml` zei **`10.200.14.40/.41`**.
+- Op `10.200.0.40` antwoordt **niets**. De echte band is `10.200.14.0/23`, gateway `10.200.14.1`,
+  dus VLAN **207**. Eén `ssh` besliste het. (Rechtgezet 2026-09-23; `SRVV-TST-ODOO-02` stond er
+  bovendien nog, terwijl die VM al sinds juni `SRVV-DEV-ODOO-01` heet.)
+- Ook `management-tools/ansible.md` droeg nog `group_vars/all_vault.yml` als conventie, terwijl
+  [[feedback-ansible-vault-loading]] al vastlegt dat dat pad **niet** geladen wordt.
+
+**How to apply — de rangorde van bronnen, van hard naar zacht:**
+
+1. **De draaiende machine.** `ssh`, `ip -4 addr`, `dig`, `curl`, `podman ps`. Dit is de enige bron
+   die niet kan verouderen.
+2. **De automation-repo** (`inventory.yml`, de SoT-bestanden in `vars/`). Die wordt bij elke run
+   gebruikt, dus een fout valt er snel op.
+3. **Het handbook.** Wordt gelezen, niet uitgevoerd — een fout kan er maanden blijven staan.
+4. **Memory.** Een aanwijzing, geen bron.
+
+Spreken twee lagen elkaar tegen, geloof dan de hardere — en **schrijf de zachtere meteen bij**.
+Documentatie die ongecorrigeerd naast een gemeten feit blijft staan, is erger dan geen documentatie:
+de volgende lezer weet niet welke van de twee hij moet geloven.
+
+Gerelateerd: [[feedback-ansible-check-mode-verify]], [[feedback-same-subnet-test-proves-nothing]],
+[[feedback-ontwerp-runbook-niet-geverifieerd]], [[feedback-deployed-branch-not-main]].
