@@ -58,6 +58,23 @@ maanden een 404 kregen zonder dat iets alarmeerde ([[project-glpi-srvv-glpi-01]]
 dezelfde les als MON-2 en de backup-keten: **de afwezigheid van een signaal is zelf een
 signaal**.
 
-**Openstaand**: het clusternetwerk is hiermee aantoonbaar een enkelvoudig faalpunt voor het
-quorum — één switch nam twee nodes mee. Nakijken of corosync een tweede ring over een gescheiden
-pad heeft; zo niet, is dat een goedkope verbetering. Zie [[project-mgmt-segmentatie-vlan30]].
+## Corosync heeft één ring — opgenomen als NET-9
+
+**Bevestigd 2026-09-24**: corosync draait op **één link**. `ring0_addr` = `10.9.0.80/81/82`
+(VLAN 9) over NIC **`eno6`**, `linknumber: 0`, transport **knet** (kan 8 links),
+`link_mode: passive`. Eén netwerkpad kon dus twee van de drie nodes meenemen.
+
+Alle drie de nodes zijn identiek: `eno5`→vmbr0 (10.10.100.x), **`eno6` = corosync**,
+**`eno7`+`eno8` ongebruikt**, `ens1f0`→vmbr1 (10.1.0.x + VLAN 19), `ens1f1` = Ceph (10.7.0.x).
+
+Twee routes voor een tweede ring: over **`ens1f1`** (andere fysieke kaart `38:ea:a7` tegenover
+onboard `d4:f5:ef`, geen bekabeling nodig — en met `passive` draagt ring1 in normale werking
+geen verkeer, dus Ceph stoort niet), of over **`eno7`/`eno8`** (vrij op alle drie, zuiverder,
+maar bekabelen).
+
+⚠️ **Het draait om de switch, niet om de NIC.** Zit `ens1f1` op dezelfde switch als `eno6`, dan
+is een tweede ring schijnveiligheid en lost ze dit incident niet op. Stel de bekabeling eerst
+vast. En: een corosync-wijziging raakt het quorum zelf — `config_version` omhoog, via pmxcfs
+naar alle nodes; fout uitgevoerd splijt het cluster.
+
+Zie [[project-mgmt-segmentatie-vlan30]].
