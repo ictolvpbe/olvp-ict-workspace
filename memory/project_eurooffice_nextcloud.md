@@ -142,7 +142,51 @@ de zoekindex — OpenCloud scant bij opstart de boom en herbouwt beide. Wel éé
 andere xattr-afhankelijke apps): `xattrsupport = yes` expliciet zetten, en de restore-test afsluiten
 met een controle op de **deelrechten**, niet enkel op de bestanden.
 
-## Status 2026-09-23 — bouw gestart, drie sleutels ontbreken
+## Status 2026-09-23 — ✅ BEIDE SPOREN LIVE
+
+Publiek bereikbaar, editor werkt, document aangemaakt en bewerkt (bevestigd door de user).
+
+| FQDN | Dienst | Stand |
+|---|---|---|
+| `cloud-test.olvp.be` | Nextcloud 34.0.4.1 | ✅ backend UP, LE-cert t/m 22-12-2026 |
+| `office-test.olvp.be` | Euro-Office 9.3.4.37 | ✅ backend UP, connector *successfully connected* |
+| `ocloud-test.olvp.be` | OpenCloud 8.0.1 | ✅ backend UP, Euro-Office als app-provider geregistreerd |
+
+VM's: `SRVV-TST-CLOUD-01` (10052, 10.200.14.45) en `SRVV-TST-OCLOUD-01` (10053, 10.200.14.46),
+beide 4 vCPU / 8 GB / 120 G op `srv-pmclust-p03`. Automation: `cloud.yml`, `ocloud.yml`,
+`vars/cloud-instances.yml`, branch `werf/cloud-eurooffice` in platform-ansible.
+
+**Nog te doen:** reboot-proef, test vanaf VLAN 10, restore-test met controle op deelrechten,
+fase 7 (Keycloak-OIDC), fase 8 (Bacula + DPIA), en de gedragstest van de sessielimiet (21 sessies).
+
+## 🔑 De acht valkuilen — alle acht falen STIL
+
+Dit is de kern van wat deze werf heeft opgeleverd. Geen enkele gaf een bruikbare foutmelding.
+
+1. **🔴 `X-Frame-Options: SAMEORIGIN` van HAProxy breekt de editor op BEIDE sporen.** De editor komt
+   van `office-test` maar wordt ingebed op `cloud-test`/`ocloud-test` — andere origin, dus de
+   browser weigert het kader. Oplossing is NIET de header weglaten: XFO kent geen allowlist. Weghalen
+   voor die host + CSP `frame-ancestors` in Caddy, wat strikter is. Vlag in de SoT: `embeddable`.
+2. **🔴 `req.hdr(host)` in een `http-response`-regel matcht niet** en faalt stil — HAProxy accepteert
+   de regel en doet niets. Zet de beslissing in de request-fase in `set-var(txn.…)`.
+3. **🔴 Lege bind-mounts wissen de voorgeïnitialiseerde PostgreSQL in het Euro-Office-image.** Named
+   volumes doen copy-up, bind-mounts niet — daarom valt dit in geen enkel `docker run`-voorbeeld op.
+   Wij houden bind-mounts (data hoort op `/srv`, waar de backup kijkt) en doen de copy-up zelf.
+4. **🔴 Nextcloud negeert het systeem-truststore** en gebruikt zijn eigen
+   `resources/config/ca-bundle.crt`. De step-ca root moet er via `occ security:certificates:import`
+   in; die schrijft naar de data-map en overleeft een container-vervanging.
+5. **🔴 OpenCloud valideert tokens tegen zijn EIGEN publieke naam** → split-horizon nodig voor de
+   eigen FQDN, niet alleen die van de editor. Inloggen *lijkt* te lukken, de eerste API-call erna
+   faalt, en je valt terug op het loginscherm alsof je wachtwoord fout was.
+6. **🟠 Caddy adverteert HTTP/3 (`Alt-Svc: h3`) terwijl HAProxy TCP-only is.** De browser onthoudt
+   dat dertig dagen. ⚠️ **Staat vlootbreed in** — gemeten ook op `myschool-test.olvp.be`. Aparte werf;
+   `servers { protocols h1 h2 }` is de fix. Zie [[project-hosting-fase1-status]].
+7. **🟠 De certbot deploy-hook draait niet bij de EERSTE uitgifte**, alleen bij renewals. Certbot
+   meldt succes terwijl de `.pem` in `/etc/haproxy/certs` ontbreekt en de backend DOWN blijft.
+8. **🟡 `attr` staat niet op de Tier-1-baseline**, en `Requires=` propageert een stop (Caddy gaat mee
+   omlaag als je de app-unit met de hand stopt, en komt niet vanzelf terug).
+
+## Status (historisch) — bouw gestart, drie sleutels ontbraken
 
 **Klaar en bewezen:**
 - **Beide VM's leven.** Gekloond uit Tier-1-baseline VMID 516 (snapshot `Tier1-baseline-2026-09-21`)
