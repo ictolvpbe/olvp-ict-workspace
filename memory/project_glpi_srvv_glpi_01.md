@@ -102,6 +102,46 @@ en niet in de vhost, want die is door **Webmin** gegenereerd en wordt door Webmi
 **49 FusionInventory-agents** (v2.6/v2.3.17) posten naar `/glpi/plugins/fusioninventory/` en
 krijgen **404** — die rapporteren al geruime tijd niet meer, zonder dat iets dat aangaf. ITSM-7.
 
+## Order-plugin ODT's + database-omvang (2026-09-24)
+
+**ODT-bestelbonnen** staan buiten de DB in `/var/lib/glpi/_plugins/order/templates/`
+(`Bestelbon_BAPLE/BAWA/SO.odt`). ⚠️ Er staat een **byte-identieke duplicaatmap** `templates(1)/`
+naast met **spaties** i.p.v. underscores, en `glpi_plugin_order_preferences.template` bevat één
+voorkeur `[Bestelbon SO.odt]` — mét spatie. Alleen de nette map meenemen breekt die gebruiker,
+pas op het moment dat er besteld moet worden. Corrigeer de voorkeur vóór de migratie. ITSM-9.
+
+**Database 2082 MB — de tickets zijn de bulk niet.** `glpi_logs` was 1064 MB (51%),
+`glpi_tickets` 353 MB. Van de 6,1 M logrijen was **50,9% itemtype `CronTask`**: de cron die elke
+minuut `lastrun` bijwerkt, elke wijziging in de audit-historiek. ~540 MB zonder informatiewaarde,
+**opgeruimd 2026-09-24**: 3 105 914 rijen in 63 batches, dump als vangnet
+(`/var/backups/glpi/glpi_logs_pre-purge_20260924.sql.gz`, 74 MB). ITSM-8.
+
+⚠️ **InnoDB geeft de ruimte niet terug**: na de DELETE stond `glpi_logs` op 1179 MB i.p.v. 1064.
+De fysieke winst komt pas na `OPTIMIZE TABLE`, bewust **niet** gedraaid — de migratie gaat via
+dump-en-restore, dus de nieuwe server wordt vanzelf compact en `mysqldump` schrijft rijen, geen
+pagina's. Winst op de huidige host = query-snelheid, niet schijf.
+
+**Prullenbak (5274 tickets)**: script klaar als `/usr/local/sbin/glpi-purge-trash.php`, kopie in
+`platform-ansible/files/glpi/`. Dry-run standaard, `--older-than=N` verplicht in de praktijk (er
+wordt dagelijks weggegooid; met 30 dagen 4911 van 5274). Uit te voeren **na** de restore-test.
+Drie lessen uit het schrijven: GLPI 11 bootstrapt **niet** meer via `inc/includes.php` maar via
+`vendor/autoload.php` + `new \Glpi\Kernel\Kernel()` + `boot()` (zoals `bin/console`);
+**`GLPI_ROOT` niet zelf definiëren** want GLPI doet dat via `Safe\define()` en dat is een fatal
+bij hergebruik; en gebruik GLPI's eigen `Ticket::delete($id, true)` i.p.v. SQL, anders blijven
+followups/documents_items/tickets_users als wezen staan.
+
+⚠️ **`purgeticket` NIET aanzetten zonder bewaartermijnbeleid.** Hij ruimt de prullenbak *niet* op
+— hij verwijdert **gesloten tickets definitief** op basis van `autopurge_delay` per entiteit.
+Alle 10 entiteiten staan op `-10` (CONFIG_NEVER), dus hij doet nu niets. **De valstrik is de
+waarde `0`**: die betekent niet "uit" maar "alle gesloten tickets onmiddellijk", want het
+`closedate`-filter wordt alleen toegevoegd als `delay > 0`. 27 997 gesloten tickets zouden in één
+keer definitief verdwijnen. "Uit" is `-10`.
+
+GLPI heeft **geen ingebouwde ticket-archivering op ouderdom**. 21 196 tickets >2 jaar (waarvan 3
+nog niet afgesloten), 2792 documenten eraan gekoppeld, 5266 in de prullenbak. Maatwerk over ~15
+tabellen voor ~210 MB winst — alleen zinvol als het doel een **bewaartermijn** (GDPR/DPIA) is,
+niet als het doel "kleiner" is.
+
 ## Migratiekoers (beslist 2026-09-24 door ICT)
 
 Herbouw op een **verse Tier-1-kloon** `SRVV-GLPI-01` in **VLAN 35** (mgmt) — de server wordt
@@ -114,4 +154,5 @@ blijft voorlopig de ITSM-tool. Zie [[project-frame-frappe-hosting]], [[project-m
 
 Tracker: ITSM-1 (restore-test) · ITSM-2 (✅ mailgate) · ITSM-3 (migratie) · ITSM-4 (TLS) ·
 ITSM-5 (hygiëne) · **ITSM-6 (agents naar DNS — kritiek pad)** · ITSM-7 (dode FI-agents) ·
-SEC-6 (Webmin/iperf3/firewall).
+SEC-6 (Webmin/iperf3/firewall) · ITSM-8 (DB-opschoning) · ITSM-9 (ODT-bestelbonnen) ·
+ITSM-10 (3 oude 'nieuwe' tickets).

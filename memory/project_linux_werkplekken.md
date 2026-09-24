@@ -97,6 +97,31 @@ Het goede nieuws: het beheer-fundament ligt er grotendeels al.
    Windows-werkplek? Dat cijfer beslist de opschaling, niet de voorkeur van ICT — en het raakt
    dezelfde bus-factor-grens als werf J ([[project-bus-factor]]).
 
+## 🔧 Openstaand opruimpunt in GLPI — modelveld van de Chromebooks
+
+**Vastgesteld 2026-09-24, te doen wanneer het uitkomt.** In GLPI staan **117 computers zonder OS en
+zonder software**. Dat zijn géén kapotte records: het zijn **Chromebooks**, en die dragen geen
+GLPI-agent.
+
+| Status | Aantal | Wat het is |
+|---|---|---|
+| `NIEUW` | 107 | nog niet uitgeleverd, of geleverd maar nog niet in gebruik — **ca. 20 daarvan zijn nieuwe toestellen die nog op de plank liggen** (bevestigd door de user) |
+| `IN PRODUCTIE` | 10 | in gebruik |
+
+Model: vrijwel allemaal **HP Fortis 11 G10 Chromebook**, met één Lenovo ThinkBook 15 G4 ertussen.
+
+**De actie:** bij **105 van de 107** is het **modelveld leeg** (alleen fabrikant `HP` ingevuld).
+Daardoor kan de vloot niet per model gegroepeerd worden — en dat is net wat nodig is om
+**AUE-datums** te plannen (WP-2). Het modelveld invullen maakt van deze records meteen de
+WP-2-basis, in plaats van dat daar een aparte export voor nodig is.
+
+⚠️ **Niet verwijderen.** De verleiding is deze records op te ruimen omdat ze "leeg" lijken. Ze zijn
+niet leeg, ze zijn correct geregistreerd; alleen het modelveld ontbreekt. Wat wél opruimwerk is:
+nakijken of de tien op `IN PRODUCTIE` werkelijk in gebruik zijn.
+
+*(Ik noemde dit eerst zelf "lege records om op te ruimen" — te snel geconcludeerd op basis van een
+ontbrekend OS-veld, zonder naar de status te kijken.)*
+
 ## CxLogon — 500 toestellen dragen iets dat niet draait
 
 GLPI vond `CxLogon` (Jahastech) op **500 van de 605 toestellen**. De user: het werkt samen met
