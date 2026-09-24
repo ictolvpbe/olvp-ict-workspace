@@ -1,6 +1,6 @@
 ---
 name: project-vlan34-admin-access
-description: "TODO (user, 2026-09-24): VLAN 34 moet op korte termijn het admin-VLAN worden dat álle andere VLANs bereikt. Vandaag is het een lappendeken van solo-host-regels, en DHCP deelt 8.8.8.8 als eerste resolver uit waardoor olvp.int niet resolvt."
+description: "VLAN 34 = admin-VLAN (4 toestellen: 2 Linux, 2 Win + wifi). Gemeten 24/09: staat BREED open (ook DMZ, strijdig met A-004) — niet te krap. Ontwerp AD-1..AD-8 in firewall-matrix; tracker NET-10 (regels), NET-11 (DHCP 8.8.8.8), NET-12 (VLAN 4, ná NET-10), NET-13 (802.1X EAP-TLS)."
 metadata:
   type: project
 ---
@@ -86,3 +86,50 @@ dichtzetten. Andersom snijdt de beheerwerkplek zichzelf af van `frame-acc` en `f
 
 De DHCP-lease op dat net gaf een **/20** (`10.4.2.138/20`, gw `10.4.0.1`), terwijl de afspraak
 `/16` noemt — uitzoeken wat de werkelijke scope is voor je regels schrijft.
+
+## Vastgesteld 2026-09-24: `ADMIN-WORKSTATIONS` bestaat niet in UniFi
+
+De host-list uit `firewall-rules-matrix.md` (bron van A-001/A-002/A-010/A-012/B-002) is nooit
+aangemaakt — bevestigd door de user. Welke objecten de werkende paden (bastion, Semaphore, `.42:443`)
+wél als bron gebruiken, is nog niet uitgelezen. Ontwerpvraag van de user: wie mag op VLAN 34
+(toegangscontrole), en mag een toestel daar eens verbonden overal bij of beperken we? Voorstel in
+gesprek: 802.1X met toestelcertificaat als toegangspoort, VLAN 34 zelf als bron-object (geen
+host-list), en per bestemmingszone een poortgroep in plaats van Admin→any.
+
+**Antwoorden user 2026-09-24:** VLAN 34 = **4 toestellen** (2 Linux, 2 Windows); er bestaat **wél een
+wifi-netwerk op VLAN 34** (hoe beveiligd — PSK of 802.1X — nog na te kijken, dat is het grootste
+mogelijke gat); remote support aan gebruikers loopt via een **cloudtool** → gebruikers-VLANs mogen
+vanaf VLAN 34 volledig dicht.
+
+## Gemeten 2026-09-24 namiddag vanaf 10.34.0.2 — de lezing hierboven klopt NIET
+
+⚠️ "Lappendeken van solo-host-regels" was fout. VLAN 34 staat vandaag **breed open**: DC's
+(`10.33.0.10`, `10.10.0.10`, `10.200.0.10`) op alle AD-poorten incl. 135/3389/5985, VLAN 35
+(bastion, Semaphore, `.12`, UniFi `.15`), `10.36.0.42:22+443`, `10.200.14.41`, Proxmox
+`10.10.100.80:8006` én de **DMZ** (`10.21.0.6:22`, `10.21.1.10:22/8443` — strijdig met A-004).
+**Élke host die dicht leek, stond uit**: ARP `INCOMPLETE` vanaf de bastion in hetzelfde VLAN, en
+`pvesh` toont ze `stopped` (Forgejo 209, MONITOR-01 223, ODOO-01 220, ACC-FRAME 224/225, …).
+Er is dus geen enkel bewijs van een blokkade vanaf VLAN 34. Het probleem is eerder te ruim dan te
+krap. Welke zone-policy dat doet, moet uit de controller komen. Ontwerp AD-1..AD-8 staat in
+`firewall-rules-matrix.md` sectie "Admin-VLAN 34".
+
+**Hermeten 2026-09-24 na herstart van de VM's:** vanaf 10.34.0.2 nu óók open: Forgejo `.11`,
+MONITOR `.20`, ODOO-01 `10.36.0.40`, FRAME `10.36.0.50/.52`, `10.200.14.40/.51/.52` (22+443).
+Enkel `10.36.0.51` dicht (geen ARP vanaf bastion; TST-ACC-FRAME-01 = VMID 225 zit op **.52**, niet
+.51 — de toewijzing .50/.51/.52 in deze notitie klopt dus niet) en `10.19.0.20:22` (VLAN 19
+geïsoleerd, verwacht). Conclusie blijft: VLAN 34 staat breed open, geen enkele blokkade.
+
+**VLAN 36 volledig gescand 2026-09-24 (10.36.0.2-254, vanaf 10.34.0.2):** antwoorden op 22+443+ICMP:
+`.40` ODOO-01, `.42` ACC-01, `.50` ACC-FRAME-01, `.52` TST-ACC-FRAME-01 — alle vier volledig open.
+Niet antwoordend, maar niet door de firewall: `.44` SRVV-SSPR-01 (VMID 105, stopped, geen onboot)
+en `.51` SRVV-FRAPPE-02 (VMID 401, stopped, **net0 op vmbr0 zonder VLAN-tag** — zou zelfs gestart
+niet in VLAN 36 landen; inventory en vm-inventory.md zeggen 10.36.0.51).
+
+## Stand einde sessie 2026-09-24 — tracker
+
+Vastgelegd in `governance/tracker-additions.md`: **NET-10** (brede toegang vervangen door AD-1..AD-8;
+eerst in de controller de regel vinden die de Admin-zone vandaag opent), **NET-11** (DHCP 8.8.8.8 eruit
++ zoekdomein), **NET-12** (VLAN 4 afschermen, pas ná NET-10), **NET-13** (802.1X + toestelcertificaat;
+eerst nakijken of het VLAN-34-wifi een PSK heeft), **OPS-3** (startbeleid VM's na de reset).
+Remote support aan gebruikers loopt via een cloudtool → gebruikers-VLANs dicht vanaf VLAN 34; op
+de beheertoestellen enkel de technicus-client, geen onbeheerde agent.

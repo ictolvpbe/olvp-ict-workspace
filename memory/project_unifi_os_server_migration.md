@@ -160,3 +160,15 @@ De VM stond 10 dagen uit (journaal springt van 18/08 11:14 naar de boot van 28/0
 - ⚠️ **PREREQ cut-over**: BZ/192.168-devices vóór de globale Fase 0b/DNS-flip uit het centrale pad halen (dedicated on-site controller aanbevolen) — anders controller-loos. Zie scoping-besluit hierboven.
 - **AD-DNS** `SRVV-UNIFI-01.olvp.int → 10.35.0.15` nog aanmaken (NXDOMAIN; user doet dit op de Windows-DC). `unifi.olvp.int` met rust laten.
 - Werkstation-hygiëne: `~/Downloads/ansible_olvp(.pub)` (private key) verwijderen; `~/.ssh/known_hosts` chown naar kristof.
+
+## ✅ Oude controller gedecommissioned 2026-09-24
+
+Bevestigd door de user: de nieuwe UniFi OS Server is in gebruik, de oude controller is uit dienst.
+- **Oud:** VMID **201**, naam `SRVV-UNIFI-01`, VLAN 10 (net0 tag=10). Om 15:08 gestopt (hastop +
+  qmshutdown). Staat nog als HA-resource met `state stopped`.
+- **Nieuw:** VMID **210**, naam **`SRVV-UNIFI-new`**, VLAN 35 `10.35.0.15` (MAC bc:24:11:c4:26:9e),
+  `onboot: 1`, **niet** in HA.
+
+Opruimpunten: VM 201 uit HA halen en na een wachttijd verwijderen (of hernoemen naar
+`WEG-SRVV-UNIFI-01`, zoals `WEG-SRVV-ODOO-TEMPLATE`); de nieuwe VM de canonieke naam
+`SRVV-UNIFI-01` geven — de Proxmox-naam loopt nu achter op DNS/inventory en de naamconventie.

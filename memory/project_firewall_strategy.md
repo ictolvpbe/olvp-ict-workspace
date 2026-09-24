@@ -55,3 +55,7 @@ Vanaf het werkstation-laptop op **`10.10.150.27` (VLAN 10 USERS, wifi `wlp5s0`)*
 Nog niet uitgezocht of dit **host-specifiek** is (een admin-uitzondering op dit IP/clientgroep) of **VLAN-breed**. Te testen vanaf een gewoon user-toestel in VLAN 10; bij VLAN-breed is dit een prio-bevinding voor fase 1b.
 
 ⚠️ **Correctie op een aanname die in meerdere memories staat**: het werkstation waarop Claude draait zit **niet** op VLAN 34 maar op VLAN 10 (wifi, 10.10.150.27). Uitspraken als "werkstation (VLAN 34 Admin) bereikt .20 direct" kloppen qua uitkomst maar niet qua reden. Bij bereikbaarheidstests dus altijd eerst `ip route get <doel>` — zie ook [[feedback-test-from-user-vlan]], dat precies hierover gaat.
+
+⚠️ **Achterhaald 2026-09-24:** het werkstation zit nu bekabeld in **VLAN 34** (`10.34.0.2`), met wifi
+`WL-BSP001` (VLAN 4) ernaast. De host-list `ADMIN-WORKSTATIONS` is nooit aangemaakt. VLAN 34 staat
+breed open, óók naar de DMZ — zie [[project-vlan34-admin-access]] en tracker NET-10.

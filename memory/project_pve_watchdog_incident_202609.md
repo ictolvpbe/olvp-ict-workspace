@@ -1,6 +1,6 @@
 ---
 name: project-pve-watchdog-incident-202609
-description: "2026-09-24 12:00: switchstoring brak het Proxmox-quorum, HA-watchdog resette srv-pmclust-p02 en p03 hard. Alles kwam terug behalve SRVV-NXFILTER-V11. Switch opgelost door ICT."
+description: "2026-09-24 12:00: switchstoring brak het Proxmox-quorum, HA-watchdog resette srv-pmclust-p02 en p03 hard. ⚠️ NIET alles kwam terug: ná de middag nog 19 VM's stopped, o.a. prod SRVV-ODOO-01. Switch opgelost door ICT."
 metadata:
   type: project
 ---
@@ -78,3 +78,27 @@ vast. En: een corosync-wijziging raakt het quorum zelf — `config_version` omho
 naar alle nodes; fout uitgevoerd splijt het cluster.
 
 Zie [[project-mgmt-segmentatie-vlan30]].
+
+## ⚠️ Correctie 2026-09-24 namiddag: "alles terug" klopte niet
+
+Gemeten via `pvesh get /cluster/resources` (±2u40 na de reset): nog **19 VM's `stopped`**, o.a.
+**SRVV-ODOO-01 (220, prod)**, SRVV-MONITOR-01 (223), SRVV-FORGEJO-01 (209), SRVV-SSPR-01 (105),
+SRVV-P-BACKUP-01 (1099), SRVV-CLOUDBACKUP-01 (513, HA `state stopped`), SRVV-NETXMS-01 (206,
+**onboot=1** maar stopped), SRVV-ACC-FRAME-01/TST-ACC-FRAME-01 (224/225), NXFILTER-SD-STUD (1100).
+Niet vastgesteld welke daarvan vóór de reset draaiden (test-/WEG-VM's kunnen bewust uit staan).
+
+**Derde categorie die de tabel hierboven mist:** een VM **zonder `onboot` én zonder HA** komt na
+een reset nooit terug, en geen van beide controles vindt hem. Die mis je alleen met een lijst
+"wat hoort te draaien". En de monitoring-VM zelf lag mee plat — daarom alarmeerde niets.
+
+**Later 24/09:** CLOUDBACKUP-01 (513) gestart, HA + onboot aangepast door user; 201 uit HA, 210 (nieuwe UniFi) in HA.
+
+**Hersteld 2026-09-24 ±15u (door user):** ODOO-01, MONITOR-01, FORGEJO-01, P-BACKUP-01,
+ACC-FRAME/TST-ACC-FRAME, DEV/TST-FRAME, TST-ODOO-01 draaien weer; `10.36.0.40` via Caddy = 200.
+Nog stopped: SSPR-01 (105), CLOUDBACKUP-01 (513, HA stopped), NETXMS-01 (206, onboot=1),
+NXFILTER-SD-STUD (1100), GLPI-01-ORG (204) + test-pc's. **VM 201 `SRVV-UNIFI-01` is de OUDE
+controller op VLAN 10** (net0 tag=10) — om 15:08 bewust gedecommissioned door de user (bevestigd);
+de nieuwe UniFi OS Server op 10.35.0.15 is een andere VM en draait.
+
+Tracker **OPS-3** (startbeleid: lijst "moet draaien" + onboot/HA per VM) — nog open: SSPR-01 (105)
+zonder onboot, FRAPPE-02 (401) op vmbr0 zonder tag, NETXMS-01 (206) onboot=1 maar stopped.
