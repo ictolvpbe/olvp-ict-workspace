@@ -24,23 +24,34 @@ De switch is opgelost.
 ## Wat geraakt werd
 
 - `srv-pmclust-p02` en `p03` herstart; **p01 niet**. Quorum daarna weer 3/3.
-- Alle VM's met `onboot: 1` kwamen vanzelf terug, **op één na**:
-  **`SRVV-NXFILTER-V11` (VMID 241, p03, VLAN 11)** bleef `stopped`. Er bestaat ook een
-  `SRVV-NXFILTER-V14` (VMID 240, p02), dus welke de actieve is, is niet vanzelf duidelijk.
+- Alles kwam vanzelf terug **op één na**: **`SRVV-NXFILTER-V11` (VMID 241, p03, VLAN 11)**
+  bleef `stopped` terwijl HA hem op `state started` had staan.
+  **Handmatig gestart 2026-09-24 13:15** (`qm start 241` → "Requesting HA start"); draait op
+  `10.11.0.9` en beantwoordt DNS. Er bestaat ook een `SRVV-NXFILTER-V14` (VMID 240, p02) en een
+  tweede DNS-antwoordend adres `10.11.0.10`.
+- **Meet niet te vroeg.** `SRVV-BSP001` en `SRVV-EDU001` stonden twee minuten na de reset nog op
+  `stopped` en leken uitgevallen; ze waren gewoon aan het opstarten en draaiden even later.
 - GLPI (VMID 207, `SRV-GLPI-01`) kwam binnen ~2 minuten terug; Apache en MariaDB actief,
   `status.php` weer HTTP 200. Geen schade aan de opschoning die die ochtend gedraaid was.
 
 ## Les
 
-**Een VM die na een node-reset niet terugkomt, meldt dat nergens.** `onboot: 1` staat erop, de
-node is gezond, het cluster is quorate — en toch draait hij niet. De controle die dit vindt:
+**Een VM die na een node-reset niet terugkomt, meldt dat nergens.** De node is gezond, het
+cluster is quorate — en toch draait hij niet. Maar er zijn **twee** startmechanismen, en één
+controle dekt ze niet allebei:
 
-```
-qm config <id> | grep '^onboot: 1'   +   qm status <id>
-```
+| VM-soort | Wie start hem | Controle |
+|---|---|---|
+| Gewone VM | `onboot: 1` | `qm config <id>` vs `qm status <id>`, per node |
+| **HA-beheerde VM** | de HA-manager, **`onboot` telt niet** | `ha-manager status` — gewenste state vs `qm status` |
 
-over alle VM's van alle nodes, en vergelijken. Dat is de eerste check na élke ongeplande
-node-herstart, vóór je naar de dienst zelf kijkt.
+⚠️ Een scan op `onboot: 1` **mist precies de HA-VM's**. Dat was hier bijna misgegaan: NXFILTER-V11
+kwam wél in die scan naar voren, maar de andere HA-resources (102, 103, 201, 203, 242, 513) niet —
+die hadden net zo goed stil kunnen blijven staan zonder dat de controle iets liet zien.
+
+Draai na élke ongeplande node-herstart dus **beide**, vóór je naar de diensten zelf kijkt. En
+verifieer daarna de **dienst**, niet alleen de VM-status: voor NXFilter is dat een `dig` tegen
+`10.11.0.9`, niet `qm status`.
 
 Diezelfde ochtend was er nóg een geval van hetzelfde patroon: 49 FusionInventory-agents die al
 maanden een 404 kregen zonder dat iets alarmeerde ([[project-glpi-srvv-glpi-01]]). En het is
