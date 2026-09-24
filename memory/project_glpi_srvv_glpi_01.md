@@ -1,6 +1,6 @@
 ---
 name: project-glpi-srvv-glpi-01
-description: "SRVV-GLPI-01 (10.10.100.9, VLAN 10): GLPI 11.0.4 ITSM, 33k tickets sinds 2012, draaide ongedocumenteerd buiten inventory. Mailgate-storing OPGELOST 2026-09-24 (PHP-CLI-tijdzone). Migratie naar VLAN 35 + Podman = werf L; GLPI blijft, Odoo-ITSM is langetermijn via FRAME."
+description: "Werf L. Legacy SRV-GLPI-01 (10.10.100.9) draait GLPI 11.0.4 met 28k tickets; mailgate-storing opgelost 24/09 (PHP-CLI-tijdzone). Nieuwe VM SRVV-GLPI-01 (10.35.0.30, VMID 211) opgeleverd 24/09 met baseline 13.1 + profiel M. Twee runbooks klaar. ⚠️ 11.0.4 mist vijf security-releases (RCE + unauth SQLi) en nftables ontbreekt vlootbreed."
 metadata:
   type: project
 ---
@@ -166,6 +166,62 @@ nog niet afgesloten), 2792 documenten eraan gekoppeld, 5266 in de prullenbak. Ma
 tabellen voor ~210 MB winst — alleen zinvol als het doel een **bewaartermijn** (GDPR/DPIA) is,
 niet als het doel "kleiner" is.
 
+## Nieuwe host opgeleverd 2026-09-24
+
+**VMID 211 `SRVV-GLPI-01`** op `srv-pmclust-p01`, `vmbr1 tag=35` → **10.35.0.30/24**,
+4 vCPU / 8 GB / 100 G op `rdb`. Debian 13.5, Podman 5.4.2, baseline **13.1** met
+`disk_profile: M` en `machine-id-unique`. Schijf: `/var` 40 G, `/srv` 20 G, `/opt` 1,7 G,
+VG vrij 11,6 G. Opgenomen in `inventory.yml` onder `mgmt_servers → glpi_servers`.
+
+Identiteit bewezen vers: `/etc/machine-id` en de SSH-host-sleutels dragen de tijdstempel van de
+eerste boot (13:28), dus het template was correct geseald — geen dertiende vlootduplicaat.
+
+**Drie eigen fouten onderweg, alle drie gecorrigeerd:**
+1. `--storage PRODSTOR` in het runbook gezet op vrije ruimte zonder de content-types te checken.
+   Die storage kan geen VM-images (`content rootdir`, pool `.mgr`). Juiste pool = **`rdb`**.
+   Bijvangst: PRODSTOR wijst naar de Ceph-**managerpool** en accepteert LXC-containers → OPS-2.
+2. `/opt` met de hand naar 20 G uitgebreid. **ADR 0008 verbiedt applicatiedata in `/opt`**
+   (data hoort in `/srv/<dienst>`) en de maat hoort via `disk_profile`, niet met de hand.
+   Erger: die 20 G liet te weinig VG-ruimte over om profiel M nog te kunnen toepassen.
+   Teruggekrompen; `disk_profile: M` als **host**-var gezet (als groeps-vars zou
+   `group_vars/all/vars.yml` hem stil overrulen).
+3. In SEC-6 geschreven dat de herbouw het firewall-gat vanzelf oplost "omdat de baseline
+   nftables meebrengt". **Onjuist** — zie hieronder.
+
+⚠️ **`nftables` ontbreekt vlootbreed.** Gemeten op de verse kloon: service `disabled`,
+`/etc/nftables.conf` nog het Debian-standaardbestand, ruleset leeg. `tier1-baseline.yml` raakt
+nftables niet aan en de role `baseline-host-firewall` uit **ADR 0005 bestaat niet**; die ADR
+staat sinds 2026-05-31 op *Proposed*. Elke Tier-1-kloon komt dus zonder host-firewall van de
+band. → **SEC-8**.
+
+⚠️ **GLPI 11.0.4 mist vijf security-releases.** Elke release tot 11.0.9 is een security-release:
+11.0.5 RCE via file upload (CVE-2026-22248) + session stealing + SSRF; 11.0.6 **Critical** SSTI
+(CVE-2026-26026) + **unauthenticated SQLi** via de zoekmachine (CVE-2026-26263, "toegang tot de
+webinterface volstaat"); 11.0.7/8 XSS, SQLi, arbitrary file deletion, RCE via form import;
+11.0.9 twaalf items waaronder unauth SQLi in planning en een marketplace-race die een malafide
+plugin laat installeren. Combineer met kale HTTP + geen firewall + bereikbaar vanuit negen
+netwerken → **SEC-9**. Het deploy-runbook landt daarom op **11.0.9**, met 11.0.4 enkel als
+tussenstap voor de import.
+
+## Runbooks
+
+- **RB-2026-GLPI-CLONE** (`hosting/operations/clone-glpi-vm.md`) — fase 1-4 **uitgevoerd**;
+  fase 5 (tweede NIC + policy-based routing) wacht op de cutover.
+- **RB-2026-GLPI-DEPLOY** (`hosting/operations/deploy-glpi.md`) — klaar, nog niet gedraaid.
+  Geverifieerde images: `ghcr.io/glpi-project/glpi` (officieel, tot 11.0.9),
+  `mariadb:11.8.9`, `caddy:2.11.4-alpine`. Container-uid **33**, één volume `/var/glpi`,
+  env-vars `GLPI_DB_*`.
+
+⚠️ **De container herhaalt de mailgate-storing** als je niets doet: de image heeft
+`date.timezone = UTC` én draait `front/cron.php` elke 60 s via supervisord (`cron-worker.sh`).
+Fix = php.ini-drop-in in `/usr/local/etc/php/conf.d/`; **`TZ` alleen volstaat niet**, die zet de
+systeemklok en niet `date.timezone`.
+
+Twee andere stille brekers in dat runbook: `GLPI_SKIP_AUTOINSTALL=false` betekent dat een start
+tegen een lege DB een **verse installatie** neerzet (dus importeren vóór de eerste start), en
+zonder **`glpicrypt.key`** uit de oude config blijven alle versleutelde waarden onleesbaar —
+symptoom is een GLPI dat draait maar geen mail ophaalt.
+
 ## Migratiekoers (beslist 2026-09-24 door ICT)
 
 Herbouw op een **verse Tier-1-kloon** `SRVV-GLPI-01` in **VLAN 35** (mgmt) — de server wordt
@@ -178,5 +234,6 @@ blijft voorlopig de ITSM-tool. Zie [[project-frame-frappe-hosting]], [[project-m
 
 Tracker: ITSM-1 (restore-test) · ITSM-2 (✅ mailgate) · ITSM-3 (migratie) · ITSM-4 (TLS) ·
 ITSM-5 (hygiëne) · **ITSM-6 (agents naar DNS — kritiek pad)** · ITSM-7 (dode FI-agents) ·
-SEC-6 (Webmin/iperf3/firewall) · ITSM-8 (DB-opschoning) · ITSM-9 (ODT-bestelbonnen) ·
-ITSM-10 (3 oude 'nieuwe' tickets).
+SEC-6 (Webmin/iperf3/firewall) · **SEC-8 (nftables vlootbreed)** · **SEC-9 (versie-achterstand)** ·
+ITSM-8 (DB-opschoning) · ITSM-9 (ODT-bestelbonnen) · ITSM-10 (3 oude 'nieuwe' tickets) ·
+ITSM-11 (tweede NIC) · OPS-2 (PRODSTOR → Ceph-managerpool) · NET-8 (ip-plan) · NET-9 (corosync).
