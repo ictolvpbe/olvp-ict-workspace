@@ -87,7 +87,20 @@ Op de Windows-toestellen draait de GLPI-agent en die praat **op IP**. Bewezen ui
 **Meevaller**: `glpi.olvp.int` bestaat al en wijst naar .9, en de vhost heeft geen `ServerName`,
 dus hij aanvaardt nu al elke Host-header. Agents die op naam praten werken vandaag al.
 
-**Strategie: DNS eerst, dual-IP enkel als vangnet.** De volgorde is bewust omgekeerd t.o.v. de
+**Overgangsconstructie (ICT, 24/09)**: de nieuwe host in VLAN 35 krijgt er **tijdelijk een tweede
+vNIC** bij met `10.10.100.9` in VLAN 10, zodat de nieuwe architectuur in dienst kan terwijl de
+agents nog op IP praten. Bewust segmentatie ingeleverd voor speelruimte; exit-criterium is
+**meetbaar** (nul agents op IP in het access-log), geen datum. ITSM-11.
+
+⚠️ **Zonder policy-based routing werkt die NIC voor 4 van de 61 toestellen.** Slechts 4 zitten in
+`10.10.0.0/16`; de andere 57 komen uit 10.11/10.12/10.15/10.4 en 192.168.1 (remote campus). Hun
+antwoord vertrekt via de default route op de VLAN 35-NIC → asymmetrisch → stateful EFG dropt het.
+Fix: `ip rule from 10.10.100.9` naar een eigen tabel met eigen default gw. **Testen vanaf een
+toestel buiten /16**, zie [[feedback-same-subnet-test-proves-nothing]].
+Twee stille brekers: Caddy's HTTPS-redirect (cert staat op de FQDN, agents krijgen certfout en
+verdwijnen zwijgend) en het IP-conflict — de oude host moet `.9` loslaten, dus géén warme rollback.
+
+**Strategie: DNS eerst, dual-IP als overgangsconstructie.** De volgorde is bewust omgekeerd t.o.v. de
 eerste ingeving (eerst twee IP's koppelen, clients later): zet de agents om via GPO **terwijl de
 oude server draait** — mislukt dat, dan breekt er niets want het IP verandert niet. Pas als het
 access-log **nul** agents op IP toont, migreren; de cutover is dan één DNS-wijziging.
