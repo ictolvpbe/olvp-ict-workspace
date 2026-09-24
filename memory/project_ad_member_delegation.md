@@ -30,7 +30,7 @@ metadata:
 
 **Precedent**: zelfde delegatie-patroon als de Keycloak `dsacls`-attribuut-grants (`RP`/`RPCA` op `employeeID`, per domein olvp.test + olvp.int) — zie [[project-identity-architecture]] (update 2026-06-09). Daar lezend (`RP`), hier schrijvend (`RPWP`).
 
-**Runbook**: `platform-handbook/hosting/operations/delegate-ad-group-member-write.md` (RB-2026-AD-GRPMEMBER) — symptoom/oorzaak, exact commando (test ✓ / prod ✓), verificatie (`dsacls ... | findstr` + wegwerp-testgroep via `ldapmodify`/`Add-ADGroupMember`), caveats.
+**Runbook**: ⚠️ **BESTAAT NIET** — gecontroleerd 2026-09-24, geen enkele treffer op `RB-2026-AD-GRPMEMBER` in het handbook. Deze regel beweerde `platform-handbook/hosting/operations/delegate-ad-group-member-write.md`; dat bestand is er nooit gekomen. Het commando en de caveats staan hieronder, maar een domein-brede ACL op productie-AD hoort niet alleen in memory. **Te schrijven** (zie ADR 0011). Bedoelde inhoud (RB-2026-AD-GRPMEMBER) — symptoom/oorzaak, exact commando (test ✓ / prod ✓), verificatie (`dsacls ... | findstr` + wegwerp-testgroep via `ldapmodify`/`Add-ADGroupMember`), caveats.
 
 ---
 
@@ -61,4 +61,4 @@ Reset Password = extended right GUID `00299570-246d-11d0-a768-00aa006e0529` (dsa
 
 **Caveats**: KRACHTIG account (kan elke user aanmaken/wijzigen/verwijderen/wachtwoord resetten = account-overname mogelijk) → bind-bron-restrictie + monitor events 4720/4722/4725/4726/4738/4724; AdminSDHolder/SDProp → protected users niet via sync; per-`OU=pers`-scope ware veiliger maar gebruiker koos domein-breed (consistent + niet SO-specifiek), genoteerd als toekomstige hardening; `WP;;user` ruimer dan attribuut-lijst (bewuste keuze, onderhoudbaarheid); LDAPS verplicht voor unicodePwd.
 
-**Runbook**: `platform-handbook/hosting/operations/delegate-ad-user-create-manage.md` (RB-2026-AD-USERLIFECYCLE) — sibling van RB-2026-AD-GRPMEMBER, kruislings gelinkt.
+**Sibling-runbook**: ⚠️ **BESTAAT EVENMIN** — `delegate-ad-user-create-manage.md` (RB-2026-AD-USERLIFECYCLE) is nergens te vinden (gecontroleerd 2026-09-24). Deze memory noemde dus twee runbooks die geen van beide geschreven zijn, en verwees er kruislings naar alsof ze bestonden. Beide staan nu als actie in ADR 0011.
