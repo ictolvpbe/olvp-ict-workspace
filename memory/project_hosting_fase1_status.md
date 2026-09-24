@@ -14,6 +14,16 @@ metadata:
 - **step-ca** draait al sinds 2026-05-28 op `10.21.1.10` (verhuisd naar VLAN 22 op 2026-05-31).
 - **UniFi DNAT** actief: `WAN2 84.199.147.82:80+443 → VIP 10.21.0.5:80+443`. UniFi 9.x pad: Settings → Policy table → Create policy → type Forward. **WAN2 nu, dual-WAN volgt in Fase 2.**
 - **Placeholder TLS-cert** op beide haproxy-hosts in `/etc/haproxy/certs/placeholder.pem` (30 dagen self-signed, CN=placeholder.olvp.be). Vervangen door ACME volgt in [[task #16]].
+- **Bestandsplatform live sinds 2026-09-23** ([[project-eurooffice-nextcloud]]): `cloud-test.olvp.be`
+  (Nextcloud 34.0.4), `office-test.olvp.be` (Euro-Office 9.3.4) en `ocloud-test.olvp.be`
+  (OpenCloud 8.0.1), alle drie A → `84.199.147.82`, eigen LE-cert, eigen HAProxy-backend, UP.
+  Reboot-proef geslaagd 2026-09-24.
+  ⚠️ Daarbij twee edge-bevindingen die de **hele stack** raken, niet alleen deze drie:
+  **(1)** HAProxy zette `X-Frame-Options: SAMEORIGIN` op élke respons — dat breekt elke dienst die
+  bewust in een iframe van een andere origin geladen wordt. Nu per host uitschakelbaar via
+  `embeddable` in de SoT, met CSP `frame-ancestors` in de plaats.
+  **(2)** Elke Caddy achter deze HAProxy adverteert **HTTP/3 op UDP 443** terwijl de edge TCP-only
+  is; gemeten ook op `myschool-test.olvp.be`. Tracker **SEC-7**.
 - **DNS A-records** bij one.com: `myschool-dev2.olvp.be → 84.199.147.82` actief (vermoedelijk ook andere FQDN's al — te verifiëren).
 - **TST-ODOO-02** verhuisd naar `10.200.14.41` (VLAN 207 `VL-TST-WEBAPPS`). Odoo-containers draaien: `odoo_instance_1` (8069), `odoo_instance_2` (8070), `odoo_instance_3` (8071) met postgres-backends. `/web/health` geeft 200.
 
