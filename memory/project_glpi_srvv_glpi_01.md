@@ -116,19 +116,30 @@ minuut `lastrun` bijwerkt, elke wijziging in de audit-historiek. ~540 MB zonder 
 **opgeruimd 2026-09-24**: 3 105 914 rijen in 63 batches, dump als vangnet
 (`/var/backups/glpi/glpi_logs_pre-purge_20260924.sql.gz`, 74 MB). ITSM-8.
 
-⚠️ **InnoDB geeft de ruimte niet terug**: na de DELETE stond `glpi_logs` op 1179 MB i.p.v. 1064.
-De fysieke winst komt pas na `OPTIMIZE TABLE`, bewust **niet** gedraaid — de migratie gaat via
-dump-en-restore, dus de nieuwe server wordt vanzelf compact en `mysqldump` schrijft rijen, geen
-pagina's. Winst op de huidige host = query-snelheid, niet schijf.
+⚠️ **Meet zo'n opschoning niet in tabelgrootte.** InnoDB geeft na een DELETE niets terug aan het
+bestandssysteem en het bestand groeit zelfs door de undo-administratie. Gemeten over beide
+opschoningen samen: `glpi_logs` 1064 → **1179 MB**, `glpi_tickets` 353 → **429 MB**, database
+2082 → **2272 MB**. De database werd op schijf dus *groter*.
+
+De winst zit in de **gzip-dump**: ~165 MB vóór alles → **107 MB** erna, ongeveer een derde.
+Dat is véél minder dan de 540 MB ruwe tabelruimte, want gzip comprimeert repetitieve logrijen
+uitstekend — **reken ruwe tabelruimte nooit één-op-één door naar dumpgrootte** (fout die ik
+tijdens deze werf maakte). Echte opbrengst: 3,1 M logrijen + 4911 tickets minder te doorzoeken
+en te herstellen. `OPTIMIZE TABLE` bewust niet gedraaid; de restore op de nieuwe server bouwt
+compact op.
 
 **Prullenbak (5274 tickets)**: script klaar als `/usr/local/sbin/glpi-purge-trash.php`, kopie in
 `platform-ansible/files/glpi/`. Dry-run standaard, `--older-than=N` verplicht in de praktijk (er
-wordt dagelijks weggegooid; met 30 dagen 4911 van 5274). Uit te voeren **na** de restore-test.
-Drie lessen uit het schrijven: GLPI 11 bootstrapt **niet** meer via `inc/includes.php` maar via
+wordt dagelijks weggegooid; met 30 dagen 4911 van 5274). **Uitgevoerd 2026-09-24**: 4911 verwijderd, 0 mislukt, 363 recente bewaard door de 30-dagengrens.
+**Wezencontrole: 0** in itilfollowups/tickets_users/documents_items/tickettasks — bewijs dat
+GLPI's eigen delete de gekoppelde rijen meeneemt. Tickets 33 476 → 28 573.
+Vier lessen uit het schrijven: GLPI 11 bootstrapt **niet** meer via `inc/includes.php` maar via
 `vendor/autoload.php` + `new \Glpi\Kernel\Kernel()` + `boot()` (zoals `bin/console`);
 **`GLPI_ROOT` niet zelf definiëren** want GLPI doet dat via `Safe\define()` en dat is een fatal
 bij hergebruik; en gebruik GLPI's eigen `Ticket::delete($id, true)` i.p.v. SQL, anders blijven
-followups/documents_items/tickets_users als wezen staan.
+followups/documents_items/tickets_users als wezen staan. En: GLPI's `DBmysqlIterator` levert de
+**ticket-id als array-key**, niet een numerieke index — een voortgangsteller uit de foreach-key
+toont dus ticket-id's ("94000/4911") in plaats van voortgang.
 
 ⚠️ **`purgeticket` NIET aanzetten zonder bewaartermijnbeleid.** Hij ruimt de prullenbak *niet* op
 — hij verwijdert **gesloten tickets definitief** op basis van `autopurge_delay` per entiteit.
