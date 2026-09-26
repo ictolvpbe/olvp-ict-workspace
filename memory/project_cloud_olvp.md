@@ -104,6 +104,44 @@ De user wil dit onderzoeken, mits het **in hoge mate integreerbaar** blijft met 
 Kandidaten om te bekijken (niet geverifieerd, startpunt): IONOS (zit in het Euro-Office-consortium),
 OVHcloud, Hetzner, Scaleway, Exoscale, en de Nextcloud-partnerlijst.
 
+## Mail/agenda/meet-kandidaten (verkenning 2026-09-25, nog geen beslissing)
+
+- **OX App Suite 8** zelf hosten = Kubernetes + Helm + **Istio** verplicht; bijna alle OLVP-hosts
+  draaien Podman/Quadlet en er is geen K8s. Enige gratis instap = via openDesk CE (ook K8s).
+  Sterk als *managed* front-end: OX is de motor achter mailbox.org en IONOS → exit in beide richtingen.
+- **grommunio**: Community Edition gelimiteerd tot **5 users** → alleen betaald bruikbaar.
+- **Stalwart**: all-in-one (SMTP/IMAP/JMAP/CalDAV/CardDAV), OIDC/Keycloak, v0.16.x (sep 2026), nog pre-1.0,
+  eigen webmail pas na 1.0 → combineren met SOGo/Roundcube.
+- **SOGo** (Alinto, FR): volwassen webmail+CalDAV/CardDAV, OIDC; vraagt wel Postfix+Dovecot+Rspamd eronder.
+- **Meet**: BigBlueButton zit native in Moodle (APP-1); Jitsi = openDesk-keuze maar 8x8 (VS) als eigenaar;
+  OpenTalk (DE) gebruikt Keycloak native.
+- Advies gegeven: mail managed EU (OX-gebaseerd), self-host-PoC Stalwart+SOGo als tegenhanger, OX zelf niet
+  hosten. Te verifiëren: OIDC-federatie met eigen Keycloak bij managed aanbieders.
+
+## openDesk-inpassing (verkenning 2026-09-25)
+
+- Alleen Kubernetes (Helmfile), getest op kubespray; single-node K3s kan voor een evaluatie. Evaluatie vraagt
+  12 cores/32 GB (docs) of 4/8 volgens de K3s-blog. Productie vraagt externe DB, objectopslag, Postfix, Coturn en ClamAV.
+- Brengt een **eigen IAM** mee: Nubus (Univention) = OpenLDAP + Keycloak + provisioning. Dat botst met onze
+  Keycloak-op-SRVV-ID-01 + ADR 0011-keten. Nog te verifiëren: AD-connector in Nubus-K8s en Keycloak-brokering.
+- Legt Nextcloud + Collabora vast; Euro-Office en OpenCloud zitten er niet in.
+- Kernvraag aan de user: willen we Kubernetes in huis? Nee → openDesk als blauwdruk of managed. Ja → volledig
+  openDesk en het eigen bestandsspoor stoppen (geen twee parallelle stapels).
+
+**User-keuze 2026-09-25:** openDesk = te zwaar, verder bouwen op eigen stack. Kandidaten: Stalwart / SOGo / Mailcow.
+Nagekeken:
+- Het zijn lagen, geen alternatieven: Stalwart heeft géén webmail (alleen admin-UI, pre-1.0), en Mailcow gebruikt SOGo als webmail.
+- Mailcow = Docker Compose; de Podman-PR #7203 staat nog open (sep 2026). Keycloak-OIDC met auto-import werkt; voor IMAP-clients is een app-wachtwoord nodig.
+- "Bijlage opslaan in cloud" is een webmail-plugin, geen serverfunctie. SOGo heeft het niet; Roundcube wel via WebDAV-plugins (Roundav, Roundrive, nextcloud_attachments), maar
+  die zijn gebouwd voor Nextcloud. OpenCloud: WebDAV ja (TUS-upload), app tokens ja, basic auth standaard uit; OCS-share-compat onzeker.
+- Geen webmail praat direct met Euro-Office: de route loopt via het bestandsplatform (WOPI).
+- Advies: PoC Stalwart + Roundcube (+ CalDAV-kalenderplugin). Deze eis weegt in de keuze voor het bestandsplatform in het voordeel van Nextcloud.
+- **Runbook RB-2026-MAIL-POC geschreven 2026-09-25** (`hosting/operations/deploy-mail-poc-stalwart-roundcube.md`), tracker **CLOUD-5**.
+  Ontwerp, nog niet uitgevoerd. VM SRVV-TST-MAIL-01 (VMID 10054, 10.200.14.47 gereserveerd), maildomein `mailpoc.olvp.be`
+  (de MX van olvp.be wordt niet aangeraakt). Kern = meetvragen V1 (koppeling met OpenCloud), V2 (via het Keycloak-token) en V3 (agenda).
+  Harde voorwaarde voor V2: OpenCloud eerst aan Keycloak (fase 7 van RB-2026-NC-EO-DEPLOY staat nog open).
+  Stalwart controleert `aud`=`stalwart` → audience-mapper op de roundcube-client is verplicht.
+
 ## Verder mee te nemen
 
 - **Opslag en backup schalen niet vanzelf mee.** Immich voor een school is een fotoarchief dat
